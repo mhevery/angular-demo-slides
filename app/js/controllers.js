@@ -26,10 +26,17 @@ function PresentationCntrl($route, $window) {
   slide('knowledge',         'What you need to build a web-app');
   slide('jQuery',            'jQuery solves DOM manipulation');
   slide('angular',           'A fresh start');
+  slide('difference',        "It's different");
   slide('dom_manipulation',  'Manipulating DOM');
   slide('input',             'Reading input');
   slide('password',          'Application Behavior');
   slide('password_xhr',      'XHR');
-  slide('difference',        "It's different");
+
+  slide('app_logic',         "Focus on what matters");
+  slide('scafolding',        "Reduce Chaos");
+  slide('learning_curve',    "Shorten Learning Curve");
+  slide('maintenance',       "Reduce Maintainance");
+  slide('development_speed', "Development Speed");
+  slide('server',            "Simplify server implementation");
 }
 
