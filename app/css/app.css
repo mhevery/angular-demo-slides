@@ -1,30 +1,80 @@
 /* app css stylesheet */
 
-.menu {
-  list-style: none;
-  border-bottom: 0.1em solid black;
-  margin-bottom: 2em;
-  padding: 0 0 0.5em;
-}
-
-.menu:before {
-  content: "[";
-}
-
-.menu:after {
-  content: "]";
-}
-
-.menu > li {
-  display: inline;
-}
-
-.menu > li:before {
-  content: "|";
-  padding-right: 0.3em;
-}
-
-.menu > li:nth-child(1):before {
-  content: "";
+body {
+  margin: 0;
   padding: 0;
+}
+
+body > h1 {
+  background-color: #F2C200;
+  margin: 0;
+  padding: .5em 1em;
+  border-bottom: 1px solid black;
+}
+
+.ng-view {
+  border-top: 1px solid gray;
+  display: block;
+  padding: .25em;
+}
+
+h2 {
+  border-bottom: 1px solid black;
+  padding: .25em 0;
+  margin: 0 .25em .25em .25em;
+}
+
+.example h1 {
+  font-size: 20px;
+}
+
+li {
+  font-family: helvetica, arial, sans-serif;
+  font-size: 40px;
+  padding-top: .5em;
+}
+
+li li {
+  font-size: 80%;
+}
+
+ul {
+  margin-left: 2em;
+}
+
+ul ul {
+  margin-left: .5em;
+}
+
+* {
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  -ms-box-sizing: border-box;
+}
+
+.navigation {
+  float: right;
+}
+
+.floating-slide {
+  float: right;
+}
+
+.left-column {
+  float: left;
+  width: 50%;
+}
+
+.right-column {
+  float: right;
+  width: 50%;
+}
+
+div.syntaxhighlighter > table {
+  overflow: hidden !important;
+}
+
+/* Code snippet */
+fieldset.code > div{
+  font-size: 80%;
 }

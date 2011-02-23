@@ -1,0 +1,53 @@
+<div class="left-column">
+  <h2>JavaScript + jQuery</h2>
+  <h3>Basic</h3>
+  <pre class="code">
+    ===script===
+    var count = 0;
+    function increment(){
+      count ++;
+      $('.ex1 span').text(count);
+    }
+    ===/script===
+    <div class="ex1">
+      <a href="" onclick="increment()">
+        click
+      </a>:
+      <span>0</span>
+    </div>
+  </pre>
+</div>
+
+<div class="right-column">
+  <h2>&lt;angular/&gt;</h2>
+  <h3>Quick &amp; Dirty</h3>
+  <pre class="code">
+    <div ng:init="count=0">
+      <a href="" ng:click="count=count+1">
+        click
+      </a>:
+      <span>{{count}}</span>
+    </div>
+  </pre>
+
+  <h3>Proper</h3>
+  <input type="checkbox" name="proper"> Show?
+  <pre class="code" ng:show="proper">
+    ===script===
+    function Counter(){
+      this.count = 0;
+      this.increment = function(){
+        this.count ++;
+      }
+    }
+    ===/script===
+    <div ng:controller="Counter">
+      <a href="" ng:click="increment()">
+        click
+      </a>:
+      <span>{{count}}</span>
+    </div>
+  </pre>
+</div>
+
+

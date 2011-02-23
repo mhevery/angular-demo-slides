@@ -1,18 +1,31 @@
 <!doctype html>
-<html xmlns:ng="http://angularjs.org/">
+<html xmlns:ng="http://angularjs.org/" xmlns:y="http://presentation.angularjs.org/" ng:controller="PresentationCntrl">
 <head>
-  <title>my angular app</title>
+  <title>&lt;angular/&gt;: {{view.title}}</title>
   <link rel="stylesheet" href="css/app.css"/>
 </head>
 <body style="display:none" ng:show="true">
-  <ul class="menu">
-    <li><a href="#/view1">view1</a></li>
-    <li><a href="#/view2">view2</a></li>
-  </ul>
+  <h1>
+    &lt;angular/&gt;: {{view.title}}
+    <span class="navigation">
+      [ <a href="#/{{prev}}">&lt;&lt;</a>
+      | <a href="#/{{next}}">&gt;&gt;</a> ]
+    </span>
+  </h1>
 
   <ng:view></ng:view>
 
   <script src="lib/angular/angular.js" ng:autobind></script>
+  <script src="lib/showdown/showdown-0.9.js"></script>
+  <script src="lib/jquery/jquery-1.4.2.js"></script>
+  <script src="lib/showdown/showdown-0.9.js"></script>
+  <script src="lib/syntaxhighlighter/shCore.js"></script>
+  <script src="lib/syntaxhighlighter/shBrushJScript.js"></script>
+  <script src="lib/syntaxhighlighter/shBrushXml.js"></script>
+  <link rel="stylesheet" href="lib/syntaxhighlighter/shCore.css" type="text/css"/>
+  <link rel="stylesheet" href="lib/syntaxhighlighter/shThemeDefault.css" type="text/css"/>
+
+
   <script src="js/services.js"></script>
   <script src="js/controllers.js"></script>
   <script src="js/filters.js"></script>

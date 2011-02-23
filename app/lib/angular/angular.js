@@ -54,12 +54,14 @@ var uppercase = function (string){ return isString(string) ? string.toUpperCase(
 
 
 var manualLowercase = function (s) {
-  return isString(s) ? s.replace(/[A-Z]/g,
-      function (ch) {return fromCharCode(ch.charCodeAt(0) | 32); }) : s;
+  return isString(s)
+      ? s.replace(/[A-Z]/g, function (ch) {return fromCharCode(ch.charCodeAt(0) | 32); })
+      : s;
 };
 var manualUppercase = function (s) {
-  return isString(s) ? s.replace(/[a-z]/g,
-      function (ch) {return fromCharCode(ch.charCodeAt(0) & ~32); }) : s;
+  return isString(s)
+      ? s.replace(/[a-z]/g, function (ch) {return fromCharCode(ch.charCodeAt(0) & ~32); })
+      : s;
 };
 
 
@@ -107,17 +109,18 @@ var _undefined        = undefined,
     PRIORITY_LAST     =  99999,
     PRIORITY          = {'FIRST': PRIORITY_FIRST, 'LAST': PRIORITY_LAST, 'WATCH':PRIORITY_WATCH},
     Error             = window.Error,
-    jQuery            = window['jQuery'] || window['$'], // weirdness to make IE happy
-    _                 = window['_'],
     /** holds major version number for IE or NaN for real browsers */
     msie              = parseInt((/msie (\d+)/.exec(lowercase(navigator.userAgent)) || [])[1], 10),
-    jqLite            = jQuery || jqLiteWrap,
+    jqLite,           // delay binding since jQuery could be loaded after us.
+    jQuery,           // delay binding
     slice             = Array.prototype.slice,
     push              = Array.prototype.push,
-    error             = window[$console] ? bind(window[$console], window[$console]['error'] || noop) : noop,
+    error             = window[$console]
+                           ? bind(window[$console], window[$console]['error'] || noop)
+                           : noop,
 
     /** @name angular */
-    angular           = window[$angular]    || (window[$angular] = {}),
+    angular           = window[$angular] || (window[$angular] = {}),
     /** @name angular.markup */
     angularTextMarkup = extensionMap(angular, 'markup'),
     /** @name angular.attrMarkup */
@@ -219,7 +222,7 @@ function formatError(arg) {
  * @function
  *
  * @description
- * Extends the destination object `dst` by copying all of the properties from the `src` objects to
+ * Extends the destination object `dst` by copying all of the properties from the `src` object(s) to
  * `dst`. You can specify multiple `src` objects.
  *
  * @param {Object} dst The destination object.
@@ -292,21 +295,6 @@ function extensionMap(angular, name, transform) {
     return extPoint[name];
   });
 }
-
-function jqLiteWrap(element) {
-  // for some reasons the parentNode of an orphan looks like _null but its typeof is object.
-  if (element) {
-    if (isString(element)) {
-      var div = document.createElement('div');
-      div.innerHTML = element;
-      element = new JQLite(div.childNodes);
-    } else if (!(element instanceof JQLite)) {
-      element =  new JQLite(element);
-    }
-  }
-  return element;
-}
-
 
 /**
  * @workInProgress
@@ -444,7 +432,9 @@ function isBoolean(value) { return typeof value == $boolean;}
 function isTextNode(node) { return nodeName_(node) == '#text'; }
 function trim(value) { return isString(value) ? value.replace(/^\s*/, '').replace(/\s*$/, '') : value; }
 function isElement(node) {
-  return node && (node.nodeName || node instanceof JQLite || (jQuery && node instanceof jQuery));
+  return node &&
+    (node.nodeName  // we are a direct element
+    || (node.bind && node.find));  // we have a bind and find method part of jQuery API
 }
 
 /**
@@ -455,13 +445,13 @@ function isElement(node) {
  */
 function HTML(html, option) {
   this.html = html;
-  this.get = lowercase(option) == 'unsafe' ?
-    valueFn(html) :
-    function htmlSanitize() {
-      var buf = [];
-      htmlParser(html, htmlSanitizeWriter(buf));
-      return buf.join('');
-    };
+  this.get = lowercase(option) == 'unsafe'
+    ? valueFn(html)
+    : function htmlSanitize() {
+        var buf = [];
+        htmlParser(html, htmlSanitizeWriter(buf));
+        return buf.join('');
+      };
 }
 
 if (msie) {
@@ -473,10 +463,6 @@ if (msie) {
   nodeName_ = function(element) {
     return element.nodeName ? element.nodeName : element[0].nodeName;
   };
-}
-
-function quickClone(element) {
-  return jqLite(element[0].cloneNode(true));
 }
 
 function isVisible(element) {
@@ -765,11 +751,11 @@ function concat(array1, array2, index) {
  * @function
  *
  * @description
- * Returns function which calls function `fn` bound to `self` (`self` becomes the `this` for `fn`).
+ * Returns a function which calls function `fn` bound to `self` (`self` becomes the `this` for `fn`).
  * Optional `args` can be supplied which are prebound to the function, also known as
  * [function currying](http://en.wikipedia.org/wiki/Currying).
  *
- * @param {Object} self Context in which `fn` should be evaluated in.
+ * @param {Object} self Context which `fn` should be evaluated in.
  * @param {function()} fn Function to be bound.
  * @param {...*} args Optional arguments to be prebound to the `fn` function call.
  * @returns {function()} Function that wraps the `fn` with all the specified bindings.
@@ -819,23 +805,51 @@ function merge(src, dst) {
  * @function
  *
  * @description
- * Compiles a piece of HTML or DOM into a {@link angular.scope scope} object.
+ * Compiles a piece of HTML string or DOM into a view and produces a linking function, which can
+ * then be used to link {@link angular.scope scope} and the template together. The compilation
+ * process walks the DOM tree and tries to match DOM elements to {@link angular.markup markup},
+ * {@link angular.attrMarkup attrMarkup}, {@link angular.widget widgets}, and
+ * {@link angular.directive directives}. For each match it executes coresponding markup, \
+ * attrMarkup, widget or directive template function and collects the instance functions into a
+ * single linking function which is then returned. The linking function can then be used
+ * many-times-over on clones of compiled DOM structure, (For example when compiling
+ * {@link angular.widget.@ng:repeat repeater} the resulting linking function is called once for
+ * each item in the collection. The `ng:repeat` does this by cloning the template DOM once for
+ * each item in collection and then calling the linking function to link the cloned template
+ * with the a new scope for each item in the collection.)
+ *
    <pre>
-    var scope1 = angular.compile(window.document);
-    scope1.$init();
+    var mvc1 = angular.compile(window.document)();
+    mvc1.view; // compiled view elment
+    mvc1.scope; // scope bound to the element
 
-    var scope2 = angular.compile('<div ng:click="clicked = true">click me</div>');
-    scope2.$init();
+    var mvc2 = angular.compile('<div ng:click="clicked = true">click me</div>')();
    </pre>
  *
- * @param {string|DOMElement} element Element to compile.
- * @param {Object=} parentScope Scope to become the parent scope of the newly compiled scope.
- * @returns {Object} Compiled scope object.
+ * @param {string|DOMElement} element Element or HTML to compile into a template function.
+ * @returns {function([scope][, cloneAttachFn])} a template function which is used to bind element
+ * and scope. Where:
+ *
+ *   * `scope` - {@link angular.scope scope} A scope to bind to. If none specified, then a new
+ *               root scope is created.
+ *   * `cloneAttachFn` - If `cloneAttachFn` is provided, then the link function will clone the
+ *               `template` and call the `cloneAttachFn` allowing the caller to attach the
+ *               clonned elements to the DOM at the approriate place. The `cloneAttachFn` is
+ *               called as: <br/> `cloneAttachFn(clonedElement, scope)`:
+ *
+ *     * `clonedElement` - is a clone of the originale `element` passed into the compiler.
+ *     * `scope` - is the current scope with which the linking function is working with.
+ *
+ * Calling the template function returns object: `{scope:?, view:?}`, where:
+ *
+ *   * `view` - the DOM element which represents the compiled template. Either same or clone of
+ *           `element` specifed in compile or template function.
+ *   * `scope` - scope to which the element is bound to. Either a root scope or scope specified
+ *           in the template function.
  */
-function compile(element, parentScope) {
-  var compiler = new Compiler(angularTextMarkup, angularAttrMarkup, angularDirective, angularWidget),
-      $element = jqLite(element);
-  return compiler.compile($element)($element, parentScope);
+function compile(element) {
+  return new Compiler(angularTextMarkup, angularAttrMarkup, angularDirective, angularWidget)
+    .compile(element);
 }
 /////////////////////////////////////////////////
 
@@ -863,6 +877,23 @@ function toKeyValue(obj) {
   return parts.length ? parts.join('&') : '';
 }
 
+
+/**
+ * we need our custom mehtod because encodeURIComponent is too agressive and doesn't follow
+ * http://www.ietf.org/rfc/rfc2396.txt with regards to the character set (pchar) allowed in path
+ * segments
+ */
+function encodeUriSegment(val) {
+  return encodeURIComponent(val).
+             replace(/%40/gi, '@').
+             replace(/%3A/gi, ':').
+             replace(/%26/gi, '&').
+             replace(/%3D/gi, '=').
+             replace(/%2B/gi, '+').
+             replace(/%24/g, '$').
+             replace(/%2C/gi, ',');
+}
+
 /**
  * @workInProgress
  * @ngdoc directive
@@ -874,8 +905,8 @@ function toKeyValue(obj) {
  * @TODO rename to ng:autobind to ng:autoboot
  *
  * @description
- * This section explains how to bootstrap your application with angular using either the angular
- * javascript file.
+ * This section explains how to bootstrap your application with angular, using either the angular
+ * javascript file, or manually.
  *
  *
  * ## The angular distribution
@@ -970,7 +1001,7 @@ function toKeyValue(obj) {
        (function(window, previousOnLoad){
          window.onload = function(){
           try { (previousOnLoad||angular.noop)(); } catch(e) {}
-          angular.compile(window.document).$init();
+          angular.compile(window.document);
          };
        })(window, window.onload);
       &lt;/script&gt;
@@ -1017,19 +1048,18 @@ function toKeyValue(obj) {
 function angularInit(config){
   if (config.autobind) {
     // TODO default to the source of angular.js
-    var scope = compile(window.document, _null, {'$config':config}),
+    var scope = compile(window.document)(createScope({'$config':config})).scope,
         $browser = scope.$service('$browser');
 
     if (config.css)
       $browser.addCss(config.base_url + config.css);
     else if(msie<8)
       $browser.addJs(config.base_url + config.ie_compat, config.ie_compat_id);
-
-    scope.$init();
   }
 }
 
 function angularJsConfig(document, config) {
+  bindJQuery();
   var scripts = document.getElementsByTagName("script"),
       match;
   config = extend({
@@ -1052,6 +1082,37 @@ function angularJsConfig(document, config) {
   }
   return config;
 }
+
+function bindJQuery(){
+  // bind to jQuery if present;
+  jQuery = window.jQuery;
+  // reset to jQuery or default to us.
+  if (jQuery) {
+    jqLite = jQuery;
+    extend(jQuery.fn, {
+      scope: JQLitePrototype.scope
+    });
+  } else {
+    jqLite = jqLiteWrap;
+  }
+  angular.element = jqLite;
+}
+
+/**
+ * throw error of the argument is falsy.
+ */
+function assertArg(arg, name, reason) {
+  if (!arg) {
+    var error = new Error("Argument '" + (name||'?') + "' is " +
+        (reason || "required"));
+    if (window.console) window.console.log(error.stack);
+    throw error;
+  }
+};
+
+function assertArgFn(arg, name) {
+  assertArg(isFunction(arg, name, 'not a function'));
+};
 var array = [].constructor;
 
 /**
@@ -1223,7 +1284,7 @@ function Template(priority) {
 }
 
 Template.prototype = {
-  init: function(element, scope) {
+  attach: function(element, scope) {
     var inits = {};
     this.collectInits(element, inits, scope);
     forEachSorted(inits, function(queue){
@@ -1236,7 +1297,6 @@ Template.prototype = {
     if (!queue) {
       inits[this.priority] = queue = [];
     }
-    element = jqLite(element);
     if (this.newScope) {
       childScope = createScope(scope);
       scope.$onEval(childScope.$eval);
@@ -1255,7 +1315,7 @@ Template.prototype = {
         paths = this.paths,
         length = paths.length;
     for (i = 0; i < length; i++) {
-      children[i].collectInits(childNodes[paths[i]], inits, childScope);
+      children[i].collectInits(jqLite(childNodes[paths[i]]), inits, childScope);
     }
   },
 
@@ -1279,18 +1339,6 @@ Template.prototype = {
   }
 };
 
-/*
- * Function walks up the element chain looking for the scope associated with the give element.
- */
-function retrieveScope(element) {
-  var scope;
-  element = jqLite(element);
-  while (element && element.length && !(scope = element.data($$scope))) {
-    element = element.parent();
-  }
-  return scope;
-}
-
 ///////////////////////////////////
 //Compiler
 //////////////////////////////////
@@ -1302,34 +1350,33 @@ function Compiler(markup, attrMarkup, directives, widgets){
 }
 
 Compiler.prototype = {
-  compile: function(element) {
-    element = jqLite(element);
+  compile: function(templateElement) {
+    templateElement = jqLite(templateElement);
     var index = 0,
         template,
-        parent = element.parent();
+        parent = templateElement.parent();
     if (parent && parent[0]) {
       parent = parent[0];
       for(var i = 0; i < parent.childNodes.length; i++) {
-        if (parent.childNodes[i] == element[0]) {
+        if (parent.childNodes[i] == templateElement[0]) {
           index = i;
         }
       }
     }
-    template = this.templatize(element, index, 0) || new Template();
-    return function(element, parentScope){
-      element = jqLite(element);
-      var scope = parentScope && parentScope.$eval ?
-          parentScope : createScope(parentScope);
+    template = this.templatize(templateElement, index, 0) || new Template();
+    return function(scope, cloneConnectFn){
+      // important!!: we must call our jqLite.clone() since the jQuery one is trying to be smart
+      // and sometimes changes the structure of the DOM.
+      var element = cloneConnectFn
+        ? JQLitePrototype.clone.call(templateElement) // IMPORTAN!!!
+        : templateElement;
+        scope = scope || createScope();
       element.data($$scope, scope);
-      return extend(scope, {
-        $element:element,
-        $init: function() {
-          template.init(element, scope);
-          scope.$eval();
-          delete scope.$init;
-          return scope;
-        }
-      });
+      scope.$element = element;
+      (cloneConnectFn||noop)(element, scope);
+      template.attach(element, scope);
+      scope.$eval();
+      return {scope:scope, view:element};
     };
   },
 
@@ -1397,12 +1444,10 @@ Compiler.prototype = {
         descend = true,
         directives = true,
         elementName = nodeName_(element),
+        elementNamespace = elementName.indexOf(':') > 0 ? lowercase(elementName).replace(':', '-') : '',
         template,
         selfApi = {
           compile: bind(self, self.compile),
-          comment:function(text) {return jqLite(document.createComment(text));},
-          element:function(type) {return jqLite(document.createElement(type));},
-          text:function(text) {return jqLite(document.createTextNode(text));},
           descend: function(value){ if(isDefined(value)) descend = value; return descend;},
           directives: function(value){ if(isDefined(value)) directives = value; return directives;},
           scope: function(value){ if(isDefined(value)) template.newScope = template.newScope || value; return template.newScope;}
@@ -1413,6 +1458,7 @@ Compiler.prototype = {
       // for some reason IE throws error under some weird circumstances. so just assume nothing
       priority = priority || 0;
     }
+    element.addClass(elementNamespace);
     if (isString(priority)) {
       priority = PRIORITY[uppercase(priority)] || parseInt(priority, 10);
     }
@@ -1427,7 +1473,7 @@ Compiler.prototype = {
     });
     if (!widget) {
       if (widget = self.widgets(elementName)) {
-        if (elementName.indexOf(':') > 0)
+        if (elementNamespace)
           element.addClass('ng-widget');
         widget = bind(selfApi, widget, element);
       }
@@ -1625,13 +1671,13 @@ function errorHandlerFor(element, error) {
  * - Scopes can be nested. A scope (prototypically) inherits properties from its parent scope.
  * - Scopes can be attached (bound) to the HTML DOM tree (the view).
  * - A scope {@link angular.scope.$become becomes} `this` for a controller.
- * - Scope's {@link angular.scope.$eval $eval} is used to update its view.
+ * - A scope's {@link angular.scope.$eval $eval} is used to update its view.
  * - Scopes can {@link angular.scope.$watch watch} properties and fire events.
  *
  * # Basic Operations
  * Scopes can be created by calling {@link angular.scope() angular.scope()} or by compiling HTML.
  *
- * {@link angular.widget Widgets} and data bindings register listeners on the current scope to get
+ * {@link angular.widget Widgets} and data bindings register listeners on the current scope to be
  * notified of changes to the scope state. When notified, these listeners push the updated state
  * through to the DOM.
  *
@@ -1678,7 +1724,7 @@ function errorHandlerFor(element, error) {
  *
  * # When scopes are evaluated
  * Anyone can update a scope by calling its {@link angular.scope.$eval $eval()} method. By default
- * angular widgets listen to user change events (e.g. the user enters text into text field), copy
+ * angular widgets listen to user change events (e.g. the user enters text into a text field), copy
  * the data from the widget to the scope (the MVC model), and then call the `$eval()` method on the
  * root scope to update dependents. This creates a spreadsheet-like behavior: the bound views update
  * immediately as the user types into the text field.
@@ -1689,7 +1735,7 @@ function errorHandlerFor(element, error) {
  *
  * Because a change in the model that's triggered either by user input or by server response calls
  * `$eval()`, it is unnecessary to call `$eval()` from within your controller. The only time when
- * calling `$eval()` is needed, is when implementing a custom widget or service.
+ * calling `$eval()` is needed is when implementing a custom widget or service.
  *
  * Because scopes are inherited, the child scope `$eval()` overrides the parent `$eval()` method.
  * So to update the whole page you need to call `$eval()` on the root scope as `$root.$eval()`.
@@ -1899,7 +1945,7 @@ function createScope(parent, providers, instanceCache) {
      * {@link angular.scope.$eval()} with expression parameter, but also wraps it in a try/catch
      * block.
      *
-     * If exception is thrown then `exceptionHandler` is used to handle the exception.
+     * If an exception is thrown then `exceptionHandler` is used to handle the exception.
      *
      * # Example
        <pre>
@@ -1954,7 +2000,7 @@ function createScope(parent, providers, instanceCache) {
      *
      * @description
      * Registers `listener` as a callback to be executed every time the `watchExp` changes. Be aware
-     * that callback gets, by default, called upon registration, this can be prevented via the
+     * that the callback gets, by default, called upon registration, this can be prevented via the
      * `initRun` parameter.
      *
      * # Example
@@ -2156,37 +2202,41 @@ function createScope(parent, providers, instanceCache) {
  *
  * @description
  * Creates an inject function that can be used for dependency injection.
+ * (See {@link guide.di dependency injection})
+ *
+ * The inject function can be used for retrieving service instances or for calling any function
+ * which has the $inject property so that the services can be automatically provided. Angular
+ * creates an injection function automatically for the root scope and it is available as
+ * {@link angular.scope.$service $service}.
  *
  * @param {Object=} [providerScope={}] provider's `this`
  * @param {Object.<string, function()>=} [providers=angular.service] Map of provider (factory)
  *     function.
  * @param {Object.<string, function()>=} [cache={}] Place where instances are saved for reuse. Can
  *     also be used to override services speciafied by `providers` (useful in tests).
- * @returns {function()} Injector function.
+ * @returns
+ *   {function()} Injector function: `function(value, scope, args...)`:
  *
- * @TODO These docs need a lot of work. Specifically the returned function should be described in
- *     great detail + we need to provide some examples.
+ *     * `value` - `{string|array|function}`
+ *     * `scope(optional=rootScope)` -  optional function "`this`" when `value` is type `function`.
+ *     * `args(optional)` - optional set of arguments to pass to function after injection arguments.
+ *        (also known as curry arguments or currying).
+ *
+ *   #Return value of `function(value, scope, args...)`
+ *   The injector function return value depended on the type of `value` argument:
+ *
+ *     * `string`: return an instance for the injection key.
+ *     * `array` of keys: returns an array of instances for those keys. (see `string` above.)
+ *     * `function`: look at `$inject` property of function to determine instances to inject
+ *       and then call the function with instances and `scope`. Any additional arguments
+ *       (`args`) are appended to the function arguments.
+ *     * `none`: initialize eager providers.
+ *
  */
 function createInjector(providerScope, providers, cache) {
   providers = providers || angularService;
   cache = cache || {};
   providerScope = providerScope || {};
-  /**
-   * injection function
-   * @param value: string, array, object or function.
-   * @param scope: optional function "this"
-   * @param args: optional arguments to pass to function after injection
-   *              parameters
-   * @returns depends on value:
-   *   string: return an instance for the injection key.
-   *   array of keys: returns an array of instances.
-   *   function: look at $inject property of function to determine instances
-   *             and then call the function with instances and `scope`. Any
-   *             additional arguments (`args`) are appended to the function
-   *             arguments.
-   *   object: initialize eager providers and publish them the ones with publish here.
-   *   none:   same as object but use providerScope as place to publish.
-   */
   return function inject(value, scope, args){
     var returnValue, provider;
     if (isString(value)) {
@@ -2202,7 +2252,7 @@ function createInjector(providerScope, providers, cache) {
         returnValue.push(inject(name));
       });
     } else if (isFunction(value)) {
-      returnValue = inject(value.$inject || []);
+      returnValue = inject(injectionArgs(value));
       returnValue = value.apply(scope, concat(returnValue, arguments, 2));
     } else if (isObject(value)) {
       forEach(providers, function(provider, name){
@@ -2227,6 +2277,40 @@ function injectService(services, fn) {
 function injectUpdateView(fn) {
   return injectService(['$updateView'], fn);
 }
+
+function angularServiceInject(name, fn, inject, eager) {
+  angularService(name, fn, {$inject:inject, $eager:eager});
+}
+
+
+/**
+ * @returns the $inject property of function. If not found the
+ * the $inject is computed by looking at the toString of function and
+ * extracting all arguments which start with $ or end with _ as the
+ * injection names.
+ */
+var FN_ARGS = /^function\s*[^\(]*\(([^\)]*)\)/;
+var FN_ARG_SPLIT = /,/;
+var FN_ARG = /^\s*(((\$?).+?)(_?))\s*$/;
+var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+function injectionArgs(fn) {
+  assertArgFn(fn);
+  if (!fn.$inject) {
+    var args = fn.$inject = [];
+    var fnText = fn.toString().replace(STRIP_COMMENTS, '');
+    var argDecl = fnText.match(FN_ARGS);
+    forEach(argDecl[1].split(FN_ARG_SPLIT), function(arg){
+      arg.replace(FN_ARG, function(all, name, injectName, $, _){
+        assertArg(args, name, 'after non-injectable arg');
+        if ($ || _)
+          args.push(injectName);
+        else
+          args = null; // once we reach an argument which is not injectable then ignore
+      });
+    });
+  }
+  return fn.$inject;
+};
 var OPERATORS = {
     'null':function(self){return _null;},
     'true':function(self){return true;},
@@ -2336,9 +2420,9 @@ function lex(text, parseStringsForObjects){
   function throwError(error, start, end) {
     end = end || index;
     throw Error("Lexer Error: " + error + " at column" +
-        (isDefined(start) ?
-            "s " + start +  "-" + index + " [" + text.substring(start, end) + "]" :
-            " " + end) +
+        (isDefined(start)
+            ? "s " + start +  "-" + index + " [" + text.substring(start, end) + "]"
+            : " " + end) +
         " in expression [" + text + "].");
   }
 
@@ -2428,8 +2512,9 @@ function lex(text, parseStringsForObjects){
         index++;
         tokens.push({index:start, text:rawString, string:string, json:true,
           fn:function(){
-            return (string.length == dateParseLength) ?
-              angular['String']['toDate'](string) : string;
+            return (string.length == dateParseLength)
+              ? angular['String']['toDate'](string)
+              : string;
           }});
         return;
       } else {
@@ -2817,9 +2902,9 @@ function parser(text, json){
       }
       var fnPtr = fn(self) || noop;
       // IE stupidity!
-      return fnPtr.apply ?
-          fnPtr.apply(self, args) :
-            fnPtr(args[0], args[1], args[2], args[3], args[4]);
+      return fnPtr.apply
+          ? fnPtr.apply(self, args)
+          : fnPtr(args[0], args[1], args[2], args[3], args[4]);
     };
   }
 
@@ -2917,19 +3002,20 @@ function Route(template, defaults) {
 
 Route.prototype = {
   url: function(params) {
-    var path = [];
-    var self = this;
-    var url = this.template;
+    var self = this,
+        url = this.template,
+        encodedVal;
+
     params = params || {};
     forEach(this.urlParams, function(_, urlParam){
-      var value = params[urlParam] || self.defaults[urlParam] || "";
-      url = url.replace(new RegExp(":" + urlParam + "(\\W)"), value + "$1");
+      encodedVal = encodeUriSegment(params[urlParam] || self.defaults[urlParam] || "")
+      url = url.replace(new RegExp(":" + urlParam + "(\\W)"), encodedVal + "$1");
     });
     url = url.replace(/\/?#$/, '');
     var query = [];
     forEachSorted(params, function(value, key){
       if (!self.urlParams[key]) {
-        query.push(encodeURI(key) + '=' + encodeURI(value));
+        query.push(encodeUriSegment(key) + '=' + encodeUriSegment(value));
       }
     });
     url = url.replace(/\/*$/, '');
@@ -3268,7 +3354,7 @@ function Browser(window, document, body, XHR, $log) {
    * The listener gets called with either HashChangeEvent object or simple object that also contains
    * `oldURL` and `newURL` properties.
    *
-   * NOTE: this is a api is intended for sole use by $location service. Please use
+   * NOTE: this api is intended for use only by the $location service. Please use the
    * {@link angular.service.$location $location service} to monitor hash changes in angular apps.
    *
    * @param {function(event)} listener Listener function to be called when url hash changes.
@@ -3370,7 +3456,7 @@ function Browser(window, document, body, XHR, $log) {
    * Executes a fn asynchroniously via `setTimeout(fn, delay)`.
    *
    * Unlike when calling `setTimeout` directly, in test this function is mocked and instead of using
-   * `setTimeout` in tests, the fns are queued in an array, which can be programaticaly flushed via
+   * `setTimeout` in tests, the fns are queued in an array, which can be programmatically flushed via
    * `$browser.defer.flush()`.
    *
    */
@@ -3393,7 +3479,7 @@ function Browser(window, document, body, XHR, $log) {
    * @description
    * Set hover listener.
    *
-   * @param {function(Object, boolean)} listener Function that will be called when hover event
+   * @param {function(Object, boolean)} listener Function that will be called when a hover event
    *    occurs.
    */
   self.hover = function(listener) { hoverListener = listener; };
@@ -3745,29 +3831,15 @@ function htmlSanitizeWriter(buf){
 var jqCache = {},
     jqName = 'ng-' + new Date().getTime(),
     jqId = 1,
-    addEventListenerFn = (window.document.addEventListener ?
-      function(element, type, fn) {element.addEventListener(type, fn, false);} :
-      function(element, type, fn) {element.attachEvent('on' + type, fn);}),
-    removeEventListenerFn = (window.document.removeEventListener ?
-      function(element, type, fn) {element.removeEventListener(type, fn, false); } :
-      function(element, type, fn) {element.detachEvent('on' + type, fn); });
+    addEventListenerFn = (window.document.addEventListener
+      ? function(element, type, fn) {element.addEventListener(type, fn, false);}
+      : function(element, type, fn) {element.attachEvent('on' + type, fn);}),
+    removeEventListenerFn = (window.document.removeEventListener
+      ? function(element, type, fn) {element.removeEventListener(type, fn, false); }
+      : function(element, type, fn) {element.detachEvent('on' + type, fn); });
 
 function jqNextId() { return (jqId++); }
 
-function jqClearData(element) {
-  var cacheId = element[jqName],
-      cache = jqCache[cacheId];
-  if (cache) {
-    forEach(cache.bind || {}, function(fn, type){
-      removeEventListenerFn(element, type, fn);
-    });
-    delete jqCache[cacheId];
-    if (msie)
-      element[jqName] = ''; // ie does not allow deletion of attributes on elements.
-    else
-      delete element[jqName];
-  }
-}
 
 function getStyle(element) {
   var current = {}, style = element[0].style, value, name, i;
@@ -3786,204 +3858,6 @@ function getStyle(element) {
   return current;
 }
 
-function JQLite(element) {
-  if (!isElement(element) && isDefined(element.length) && element.item && !isWindow(element)) {
-    for(var i=0; i < element.length; i++) {
-      this[i] = element[i];
-    }
-    this.length = element.length;
-  } else {
-    this[0] = element;
-    this.length = 1;
-  }
-}
-
-JQLite.prototype = {
-  data: function(key, value) {
-    var element = this[0],
-        cacheId = element[jqName],
-        cache = jqCache[cacheId || -1];
-    if (isDefined(value)) {
-      if (!cache) {
-        element[jqName] = cacheId = jqNextId();
-        cache = jqCache[cacheId] = {};
-      }
-      cache[key] = value;
-    } else {
-      return cache ? cache[key] : _null;
-    }
-  },
-
-  removeData: function(){
-    jqClearData(this[0]);
-  },
-
-  dealoc: function(){
-    (function dealoc(element){
-      jqClearData(element);
-      for ( var i = 0, children = element.childNodes || []; i < children.length; i++) {
-        dealoc(children[i]);
-      }
-    })(this[0]);
-  },
-
-  ready: function(fn) {
-    var fired = false;
-
-    function trigger() {
-      if (fired) return;
-      fired = true;
-      fn();
-    }
-
-    this.bind('DOMContentLoaded', trigger); // works for modern browsers and IE9
-    jqLite(window).bind('load', trigger); // fallback to window.onload for others
-  },
-
-  bind: function(type, fn){
-    var self = this,
-        element = self[0],
-        bind = self.data('bind'),
-        eventHandler;
-    if (!bind) this.data('bind', bind = {});
-    forEach(type.split(' '), function(type){
-      eventHandler = bind[type];
-      if (!eventHandler) {
-        bind[type] = eventHandler = function(event) {
-          if (!event.preventDefault) {
-            event.preventDefault = function(){
-              event.returnValue = false; //ie
-            };
-          }
-          if (!event.stopPropagation) {
-            event.stopPropagation = function() {
-              event.cancelBubble = true; //ie
-            };
-          }
-          forEach(eventHandler.fns, function(fn){
-            fn.call(self, event);
-          });
-        };
-        eventHandler.fns = [];
-        addEventListenerFn(element, type, eventHandler);
-      }
-      eventHandler.fns.push(fn);
-    });
-  },
-
-  replaceWith: function(replaceNode) {
-    this[0].parentNode.replaceChild(jqLite(replaceNode)[0], this[0]);
-  },
-
-  children: function() {
-    return new JQLite(this[0].childNodes);
-  },
-
-  append: function(node) {
-    var self = this[0];
-    node = jqLite(node);
-    forEach(node, function(child){
-      self.appendChild(child);
-    });
-  },
-
-  remove: function() {
-    this.dealoc();
-    var parentNode = this[0].parentNode;
-    if (parentNode) parentNode.removeChild(this[0]);
-  },
-
-  removeAttr: function(name) {
-    this[0].removeAttribute(name);
-  },
-
-  after: function(element) {
-    this[0].parentNode.insertBefore(jqLite(element)[0], this[0].nextSibling);
-  },
-
-  hasClass: function(selector) {
-    var className = " " + selector + " ";
-    if ( (" " + this[0].className + " ").replace(/[\n\t]/g, " ").indexOf( className ) > -1 ) {
-      return true;
-    }
-    return false;
-  },
-
-  removeClass: function(selector) {
-    this[0].className = trim((" " + this[0].className + " ").replace(/[\n\t]/g, " ").replace(" " + selector + " ", ""));
-  },
-
-  toggleClass: function(selector, condition) {
-   var self = this;
-   (condition ? self.addClass : self.removeClass).call(self, selector);
-  },
-
-  addClass: function( selector ) {
-    if (!this.hasClass(selector)) {
-      this[0].className = trim(this[0].className + ' ' + selector);
-    }
-  },
-
-  css: function(name, value) {
-    var style = this[0].style;
-    if (isString(name)) {
-      if (isDefined(value)) {
-        style[name] = value;
-      } else {
-        return style[name];
-      }
-    } else {
-      extend(style, name);
-    }
-  },
-
-  attr: function(name, value){
-    var e = this[0];
-    if (isObject(name)) {
-      forEach(name, function(value, name){
-        e.setAttribute(name, value);
-      });
-    } else if (isDefined(value)) {
-      e.setAttribute(name, value);
-    } else {
-      // the extra argument "2" is to get the right thing for a.href in IE, see jQuery code
-      // some elements (e.g. Document) don't have get attribute, so return undefined
-      if (e.getAttribute) return e.getAttribute(name, 2);
-    }
-  },
-
-  text: function(value) {
-    if (isDefined(value)) {
-      this[0].textContent = value;
-    }
-    return this[0].textContent;
-  },
-
-  val: function(value) {
-    if (isDefined(value)) {
-      this[0].value = value;
-    }
-    return this[0].value;
-  },
-
-  html: function(value) {
-    if (isDefined(value)) {
-      var i = 0, childNodes = this[0].childNodes;
-      for ( ; i < childNodes.length; i++) {
-        jqLite(childNodes[i]).dealoc();
-      }
-      this[0].innerHTML = value;
-    }
-    return this[0].innerHTML;
-  },
-
-  parent: function() {
-    return jqLite(this[0].parentNode);
-  },
-
-  clone: function() { return jqLite(this[0].cloneNode(true)); }
-};
-
 if (msie) {
   extend(JQLite.prototype, {
     text: function(value) {
@@ -3999,6 +3873,358 @@ if (msie) {
     }
   });
 }
+
+/////////////////////////////////////////////
+function jqLiteWrap(element) {
+  if (isString(element) && element.charAt(0) != '<') {
+    throw new Error('selectors not implemented');
+  }
+  return new JQLite(element);
+}
+
+function JQLite(element) {
+  if (element instanceof JQLite) {
+    return element;
+  } else if (isString(element)) {
+    var div = document.createElement('div');
+    // Read about the NoScope elements here:
+    // http://msdn.microsoft.com/en-us/library/ms533897(VS.85).aspx
+    div.innerHTML = '<div>&nbsp;</div>' + element; // IE insanity to make NoScope elements work!
+    div.removeChild(div.firstChild); // remove the superfluous div
+    JQLiteAddNodes(this, div.childNodes);
+    this.remove(); // detach the elements form the temporary DOM div.
+  } else {
+    JQLiteAddNodes(this, element);
+  }
+}
+
+function JQLiteClone(element) {
+  return element.cloneNode(true);
+}
+
+function JQLiteDealoc(element){
+  JQLiteRemoveData(element);
+  for ( var i = 0, children = element.childNodes || []; i < children.length; i++) {
+    JQLiteDealoc(children[i]);
+  }
+}
+
+function JQLiteRemoveData(element) {
+  var cacheId = element[jqName],
+  cache = jqCache[cacheId];
+  if (cache) {
+    forEach(cache.bind || {}, function(fn, type){
+      removeEventListenerFn(element, type, fn);
+    });
+    delete jqCache[cacheId];
+    element[jqName] = undefined; // ie does not allow deletion of attributes on elements.
+  }
+}
+
+function JQLiteData(element, key, value) {
+  var cacheId = element[jqName],
+      cache = jqCache[cacheId || -1];
+  if (isDefined(value)) {
+    if (!cache) {
+      element[jqName] = cacheId = jqNextId();
+      cache = jqCache[cacheId] = {};
+    }
+    cache[key] = value;
+  } else {
+    return cache ? cache[key] : _null;
+  }
+}
+
+function JQLiteHasClass(element, selector, _) {
+  // the argument '_' is important, since it makes the function have 3 arguments, which
+  // is neede for delegate function to realize the this is a getter.
+  var className = " " + selector + " ";
+  return ((" " + element.className + " ").replace(/[\n\t]/g, " ").indexOf( className ) > -1);
+}
+
+function JQLiteRemoveClass(element, selector) {
+  element.className = trim(
+      (" " + element.className + " ")
+      .replace(/[\n\t]/g, " ")
+      .replace(" " + selector + " ", "")
+  );
+}
+
+function JQLiteAddClass(element, selector ) {
+  if (!JQLiteHasClass(element, selector)) {
+    element.className = trim(element.className + ' ' + selector);
+  }
+}
+
+function JQLiteAddNodes(root, elements) {
+  if (elements) {
+    elements = (!elements.nodeName && isDefined(elements.length) && !isWindow(elements))
+      ? elements
+      : [ elements ];
+    for(var i=0; i < elements.length; i++) {
+      if (elements[i].nodeType != 11)
+        root.push(elements[i]);
+    }
+  }
+}
+
+//////////////////////////////////////////
+// Functions which are declared directly.
+//////////////////////////////////////////
+var JQLitePrototype = JQLite.prototype = extend([], {
+  ready: function(fn) {
+    var fired = false;
+
+    function trigger() {
+      if (fired) return;
+      fired = true;
+      fn();
+    }
+
+    this.bind('DOMContentLoaded', trigger); // works for modern browsers and IE9
+    // we can not use jqLite since we are not done loading and jQuery could be loaded later.
+    jqLiteWrap(window).bind('load', trigger); // fallback to window.onload for others
+  },
+  toString: function(){
+    var value = [];
+    forEach(this, function(e){ value.push('' + e);});
+    return '[' + value.join(', ') + ']';
+  }
+});
+
+//////////////////////////////////////////
+// Functions iterating getter/setters.
+// these functions return self on setter and
+// value on get.
+//////////////////////////////////////////
+forEach({
+  data: JQLiteData,
+
+  scope: function(element) {
+    var scope;
+    while (element && !(scope = jqLite(element).data($$scope))) {
+      element = element.parentNode;
+    }
+    return scope;
+  },
+
+  removeAttr: function(element,name) {
+    element.removeAttribute(name);
+  },
+
+  hasClass: JQLiteHasClass,
+
+  css: function(element, name, value) {
+    if (isDefined(value)) {
+      element.style[name] = value;
+    } else {
+      return element.style[name];
+    }
+  },
+
+  attr: function(element, name, value){
+    if (isDefined(value)) {
+      element.setAttribute(name, value);
+    } else if (element.getAttribute) {
+      // the extra argument "2" is to get the right thing for a.href in IE, see jQuery code
+      // some elements (e.g. Document) don't have get attribute, so return undefined
+      return element.getAttribute(name, 2);
+    }
+  },
+
+  text: extend(msie
+      ? function(element, value) {
+        // NodeType == 3 is text node
+        if (element.nodeType == 3) {
+          if (isUndefined(value))
+            return element.nodeValue;
+          element.nodeValue = value;
+        } else {
+          if (isUndefined(value))
+            return element.innerText;
+          element.innerText = value;
+        }
+      }
+      : function(element, value) {
+        if (isUndefined(value)) {
+          return element.textContent;
+        }
+        element.textContent = value;
+      }, {$dv:''}),
+
+  val: function(element, value) {
+    if (isUndefined(value)) {
+      return element.value;
+    }
+    element.value = value;
+  },
+
+  html: function(element, value) {
+    if (isUndefined(value)) {
+      return element.innerHTML;
+    }
+    for (var i = 0, childNodes = element.childNodes; i < childNodes.length; i++) {
+      JQLiteDealoc(childNodes[i]);
+    }
+    element.innerHTML = value;
+  }
+}, function(fn, name){
+  /**
+   * Properties: writes return selection, reads return first value
+   */
+  JQLite.prototype[name] = function(arg1, arg2) {
+    if ((fn.length == 2 ? arg1 : arg2) === undefined) {
+      if (isObject(arg1)) {
+        // we are a write, but the object properties are the key/values
+        for(var i=0; i < this.length; i++) {
+          for ( var key in arg1) {
+            fn(this[i], key, arg1[key]);
+          }
+        }
+        // return self for chaining
+        return this;
+      } else {
+        // we are a read, so read the first child.
+        if (this.length)
+          return fn(this[0], arg1, arg2);
+      }
+    } else {
+      // we are a write, so apply to all children
+      for(var i=0; i < this.length; i++) {
+        fn(this[i], arg1, arg2);
+      }
+      // return self for chaining
+      return this;
+    }
+    return fn.$dv;
+  };
+});
+
+//////////////////////////////////////////
+// Functions iterating traversal.
+// These functions chain results into a single
+// selector.
+//////////////////////////////////////////
+forEach({
+  removeData: JQLiteRemoveData,
+
+  dealoc: JQLiteDealoc,
+
+  bind: function(element, type, fn){
+    var bind = JQLiteData(element, 'bind'),
+        eventHandler;
+    if (!bind) JQLiteData(element, 'bind', bind = {});
+    forEach(type.split(' '), function(type){
+      eventHandler = bind[type];
+      if (!eventHandler) {
+        bind[type] = eventHandler = function(event) {
+          if (!event.preventDefault) {
+            event.preventDefault = function(){
+              event.returnValue = false; //ie
+            };
+          }
+          if (!event.stopPropagation) {
+            event.stopPropagation = function() {
+              event.cancelBubble = true; //ie
+            };
+          }
+          forEach(eventHandler.fns, function(fn){
+            fn.call(element, event);
+          });
+        };
+        eventHandler.fns = [];
+        addEventListenerFn(element, type, eventHandler);
+      }
+      eventHandler.fns.push(fn);
+    });
+  },
+
+  replaceWith: function(element, replaceNode) {
+    var index, parent = element.parentNode;
+    JQLiteDealoc(element);
+    forEach(new JQLite(replaceNode), function(node){
+      if (index) {
+        parent.insertBefore(node, index.nextSibling);
+      } else {
+        parent.replaceChild(node, element);
+      }
+      index = node;
+    });
+  },
+
+  children: function(element) {
+    var children = [];
+    forEach(element.childNodes, function(element){
+      if (element.nodeName != '#text')
+        children.push(element);
+    });
+    return children;
+  },
+
+  append: function(element, node) {
+    forEach(new JQLite(node), function(child){
+      element.appendChild(child);
+    });
+  },
+
+  remove: function(element) {
+    JQLiteDealoc(element);
+    var parent = element.parentNode;
+    if (parent) parent.removeChild(element);
+  },
+
+  after: function(element, newElement) {
+    var index = element, parent = element.parentNode;
+    forEach(new JQLite(newElement), function(node){
+      parent.insertBefore(node, index.nextSibling);
+      index = node;
+    });
+  },
+
+  addClass: JQLiteAddClass,
+  removeClass: JQLiteRemoveClass,
+
+  toggleClass: function(element, selector, condition) {
+    if (isUndefined(condition)) {
+      condition = !JQLiteHasClass(element, selector);
+    }
+    (condition ? JQLiteAddClass : JQLiteRemoveClass)(element, selector);
+  },
+
+  parent: function(element) {
+    // in IE it returns undefined, but we need differentiate it from functions which have no return
+    return element.parentNode || null;
+  },
+
+  next: function(element) {
+    return element.nextSibling;
+  },
+
+  find: function(element, selector) {
+    return element.getElementsByTagName(selector);
+  },
+
+  clone: JQLiteClone
+}, function(fn, name){
+  /**
+   * chaining functions
+   */
+  JQLite.prototype[name] = function(arg1, arg2) {
+    var value;
+    for(var i=0; i < this.length; i++) {
+      if (value == undefined) {
+        value = fn(this[i], arg1, arg2);
+        if (value !== undefined) {
+          // any function which returns a value needs to be wrapped
+          value = jqLite(value);
+        }
+      } else {
+        JQLiteAddNodes(value, fn(this[i], arg1, arg2));
+      }
+    }
+    return value == undefined ? this : value;
+  };
+});
 var angularGlobal = {
   'typeOf':function(obj){
     if (obj === _null) return $null;
@@ -4638,8 +4864,9 @@ var angularArray = {
       return 0;
     }
     function reverse(comp, descending) {
-      return toBoolean(descending) ?
-          function(a,b){return comp(b,a);} : comp;
+      return toBoolean(descending)
+          ? function(a,b){return comp(b,a);}
+          : comp;
     }
     function compare(v1, v2){
       var t1 = typeof v1;
@@ -5729,8 +5956,9 @@ extend(angularValidator, {
     return (date &&
             date.getFullYear() == fields[3] &&
             date.getMonth() == fields[1]-1 &&
-            date.getDate() == fields[2]) ?
-              _null : "Value is not a date. (Expecting format: 12/31/2009).";
+            date.getDate() == fields[2])
+              ? _null 
+              : "Value is not a date. (Expecting format: 12/31/2009).";
   },
 
   /**
@@ -5993,41 +6221,189 @@ extend(angularValidator, {
   }
 
 });
-var URL_MATCH = /^(file|ftp|http|https):\/\/(\w+:{0,1}\w*@)?([\w\.-]*)(:([0-9]+))?(\/[^\?#]*)?(\?([^#]*))?(#(.*))?$/,
-    HASH_MATCH = /^([^\?]*)?(\?([^\?]*))?$/,
-    DEFAULT_PORTS = {'http': 80, 'https': 443, 'ftp':21},
-    EAGER = true;
-
-function angularServiceInject(name, fn, inject, eager) {
-  angularService(name, fn, {$inject:inject, $eager:eager});
-}
-
 /**
  * @workInProgress
  * @ngdoc service
- * @name angular.service.$window
+ * @name angular.service.$cookieStore
+ * @requires $cookies
  *
  * @description
- * Is reference to the browser's `window` object. While `window`
- * is globally available in JavaScript, it causes testability problems, because
- * it is a global variable. In angular we always refer to it through the
- * `$window` service, so it may be overriden, removed or mocked for testing.
+ * Provides a key-value (string-object) storage, that is backed by session cookies.
+ * Objects put or retrieved from this storage are automatically serialized or
+ * deserialized by angular's toJson/fromJson.
+ * @example
+ */
+angularServiceInject('$cookieStore', function($store) {
+
+  return {
+    /**
+     * @workInProgress
+     * @ngdoc method
+     * @name angular.service.$cookieStore#get
+     * @methodOf angular.service.$cookieStore
+     *
+     * @description
+     * Returns the value of given cookie key
+     *
+     * @param {string} key Id to use for lookup.
+     * @returns {Object} Deserialized cookie value.
+     */
+    get: function(key) {
+      return fromJson($store[key]);
+    },
+
+    /**
+     * @workInProgress
+     * @ngdoc method
+     * @name angular.service.$cookieStore#put
+     * @methodOf angular.service.$cookieStore
+     *
+     * @description
+     * Sets a value for given cookie key
+     *
+     * @param {string} key Id for the `value`.
+     * @param {Object} value Value to be stored.
+     */
+    put: function(key, value) {
+      $store[key] = toJson(value);
+    },
+
+    /**
+     * @workInProgress
+     * @ngdoc method
+     * @name angular.service.$cookieStore#remove
+     * @methodOf angular.service.$cookieStore
+     *
+     * @description
+     * Remove given cookie
+     *
+     * @param {string} key Id of the key-value pair to delete.
+     */
+    remove: function(key) {
+      delete $store[key];
+    }
+  };
+
+}, ['$cookies']);
+/**
+ * @workInProgress
+ * @ngdoc service
+ * @name angular.service.$cookies
+ * @requires $browser
  *
- * All expressions are evaluated with respect to current scope so they don't
- * suffer from window globality.
+ * @description
+ * Provides read/write access to browser's cookies.
+ *
+ * Only a simple Object is exposed and by adding or removing properties to/from
+ * this object, new cookies are created/deleted at the end of current $eval.
  *
  * @example
-   <doc:example>
-     <doc:source>
-       <input ng:init="$window = $service('$window'); greeting='Hello World!'" type="text" name="greeting" />
-       <button ng:click="$window.alert(greeting)">ALERT</button>
-     </doc:source>
-     <doc:scenario>
-     </doc:scenario>
-   </doc:example>
  */
-angularServiceInject("$window", bind(window, identity, window), [], EAGER);
+angularServiceInject('$cookies', function($browser) {
+  var rootScope = this,
+      cookies = {},
+      lastCookies = {},
+      lastBrowserCookies;
 
+  //creates a poller fn that copies all cookies from the $browser to service & inits the service
+  $browser.addPollFn(function() {
+    var currentCookies = $browser.cookies();
+    if (lastBrowserCookies != currentCookies) { //relies on browser.cookies() impl
+      lastBrowserCookies = currentCookies;
+      copy(currentCookies, lastCookies);
+      copy(currentCookies, cookies);
+      rootScope.$eval();
+    }
+  })();
+
+  //at the end of each eval, push cookies
+  //TODO: this should happen before the "delayed" watches fire, because if some cookies are not
+  //      strings or browser refuses to store some cookies, we update the model in the push fn.
+  this.$onEval(PRIORITY_LAST, push);
+
+  return cookies;
+
+
+  /**
+   * Pushes all the cookies from the service to the browser and verifies if all cookies were stored.
+   */
+  function push(){
+    var name,
+        value,
+        browserCookies,
+        updated;
+
+    //delete any cookies deleted in $cookies
+    for (name in lastCookies) {
+      if (isUndefined(cookies[name])) {
+        $browser.cookies(name, _undefined);
+      }
+    }
+
+    //update all cookies updated in $cookies
+    for(name in cookies) {
+      value = cookies[name];
+      if (!isString(value)) {
+        if (isDefined(lastCookies[name])) {
+          cookies[name] = lastCookies[name];
+        } else {
+          delete cookies[name];
+        }
+      } else if (value !== lastCookies[name]) {
+        $browser.cookies(name, value);
+        updated = true;
+      }
+    }
+
+    //verify what was actually stored
+    if (updated){
+      updated = false;
+      browserCookies = $browser.cookies();
+
+      for (name in cookies) {
+        if (cookies[name] !== browserCookies[name]) {
+          //delete or reset all cookies that the browser dropped from $cookies
+          if (isUndefined(browserCookies[name])) {
+            delete cookies[name];
+          } else {
+            cookies[name] = browserCookies[name];
+          }
+          updated = true;
+        }
+      }
+    }
+  }
+}, ['$browser']);
+/**
+ * @workInProgress
+ * @ngdoc service
+ * @name angular.service.$defer
+ * @requires $browser
+ * @requires $exceptionHandler
+ * @requires $updateView
+ *
+ * @description
+ * Delegates to {@link angular.service.$browser.defer $browser.defer}, but wraps the `fn` function
+ * into a try/catch block and delegates any exceptions to
+ * {@link angular.services.$exceptionHandler $exceptionHandler} service.
+ *
+ * In tests you can use `$browser.defer.flush()` to flush the queue of deferred functions.
+ *
+ * @param {function()} fn A function, who's execution should be deferred.
+ */
+angularServiceInject('$defer', function($browser, $exceptionHandler, $updateView) {
+  return function(fn) {
+    $browser.defer(function() {
+      try {
+        fn();
+      } catch(e) {
+        $exceptionHandler(e);
+      } finally {
+        $updateView();
+      }
+    });
+  };
+}, ['$browser', '$exceptionHandler', '$updateView']);
 /**
  * @workInProgress
  * @ngdoc service
@@ -6035,11 +6411,160 @@ angularServiceInject("$window", bind(window, identity, window), [], EAGER);
  * @requires $window
  *
  * @description
- * Reference to the browser window.document, but wrapped into angular.element().
+ * A {@link angular.element jQuery (lite)}-wrapped reference to the browser's `window.document`
+ * element.
  */
 angularServiceInject("$document", function(window){
   return jqLite(window.document);
-}, ['$window'], EAGER);
+}, ['$window']);
+/**
+ * @workInProgress
+ * @ngdoc service
+ * @name angular.service.$exceptionHandler
+ * @requires $log
+ *
+ * @description
+ * Any uncaught exception in angular expressions is delegated to this service.
+ * The default implementation simply delegates to `$log.error` which logs it into
+ * the browser console.
+ *
+ * In unit tests, if `angular-mocks.js` is loaded, this service is overriden by
+ * {@link angular.mock.service.$exceptionHandler mock $exceptionHandler}
+ *
+ * @example
+ */
+var $exceptionHandlerFactory; //reference to be used only in tests
+angularServiceInject('$exceptionHandler', $exceptionHandlerFactory = function($log){
+  return function(e) {
+    $log.error(e);
+  };
+}, ['$log']);
+/**
+ * @workInProgress
+ * @ngdoc service
+ * @name angular.service.$hover
+ * @requires $browser
+ * @requires $document
+ *
+ * @description
+ *
+ * @example
+ */
+angularServiceInject("$hover", function(browser, document) {
+  var tooltip, self = this, error, width = 300, arrowWidth = 10, body = jqLite(document[0].body);
+  browser.hover(function(element, show){
+    if (show && (error = element.attr(NG_EXCEPTION) || element.attr(NG_VALIDATION_ERROR))) {
+      if (!tooltip) {
+        tooltip = {
+            callout: jqLite('<div id="ng-callout"></div>'),
+            arrow: jqLite('<div></div>'),
+            title: jqLite('<div class="ng-title"></div>'),
+            content: jqLite('<div class="ng-content"></div>')
+        };
+        tooltip.callout.append(tooltip.arrow);
+        tooltip.callout.append(tooltip.title);
+        tooltip.callout.append(tooltip.content);
+        body.append(tooltip.callout);
+      }
+      var docRect = body[0].getBoundingClientRect(),
+          elementRect = element[0].getBoundingClientRect(),
+          leftSpace = docRect.right - elementRect.right - arrowWidth;
+      tooltip.title.text(element.hasClass("ng-exception") ? "EXCEPTION:" : "Validation error...");
+      tooltip.content.text(error);
+      if (leftSpace < width) {
+        tooltip.arrow.addClass('ng-arrow-right');
+        tooltip.arrow.css({left: (width + 1)+'px'});
+        tooltip.callout.css({
+          position: 'fixed',
+          left: (elementRect.left - arrowWidth - width - 4) + "px",
+          top: (elementRect.top - 3) + "px",
+          width: width + "px"
+        });
+      } else {
+        tooltip.arrow.addClass('ng-arrow-left');
+        tooltip.callout.css({
+          position: 'fixed',
+          left: (elementRect.right + arrowWidth) + "px",
+          top: (elementRect.top - 3) + "px",
+          width: width + "px"
+        });
+      }
+    } else if (tooltip) {
+      tooltip.callout.remove();
+      tooltip = _null;
+    }
+  });
+}, ['$browser', '$document']);
+/**
+ * @workInProgress
+ * @ngdoc service
+ * @name angular.service.$invalidWidgets
+ *
+ * @description
+ * Keeps references to all invalid widgets found during validation.
+ * Can be queried to find whether there are any invalid widgets currently displayed.
+ *
+ * @example
+ */
+angularServiceInject("$invalidWidgets", function(){
+  var invalidWidgets = [];
+
+
+  /** Remove an element from the array of invalid widgets */
+  invalidWidgets.markValid = function(element){
+    var index = indexOf(invalidWidgets, element);
+    if (index != -1)
+      invalidWidgets.splice(index, 1);
+  };
+
+
+  /** Add an element to the array of invalid widgets */
+  invalidWidgets.markInvalid = function(element){
+    var index = indexOf(invalidWidgets, element);
+    if (index === -1)
+      invalidWidgets.push(element);
+  };
+
+
+  /** Return count of all invalid widgets that are currently visible */
+  invalidWidgets.visible = function() {
+    var count = 0;
+    forEach(invalidWidgets, function(widget){
+      count = count + (isVisible(widget) ? 1 : 0);
+    });
+    return count;
+  };
+
+
+  /* At the end of each eval removes all invalid widgets that are not part of the current DOM. */
+  this.$onEval(PRIORITY_LAST, function() {
+    for(var i = 0; i < invalidWidgets.length;) {
+      var widget = invalidWidgets[i];
+      if (isOrphan(widget[0])) {
+        invalidWidgets.splice(i, 1);
+        if (widget.dealoc) widget.dealoc();
+      } else {
+        i++;
+      }
+    }
+  });
+
+
+  /**
+   * Traverses DOM element's (widget's) parents and considers the element to be an orphant if one of
+   * it's parents isn't the current window.document.
+   */
+  function isOrphan(widget) {
+    if (widget == window.document) return false;
+    var parent = widget.parentNode;
+    return !parent || isOrphan(parent);
+  }
+
+  return invalidWidgets;
+});
+var URL_MATCH = /^(file|ftp|http|https):\/\/(\w+:{0,1}\w*@)?([\w\.-]*)(:([0-9]+))?(\/[^\?#]*)?(\?([^#]*))?(#(.*))?$/,
+    HASH_MATCH = /^([^\?]*)?(\?([^\?]*))?$/,
+    DEFAULT_PORTS = {'http': 80, 'https': 443, 'ftp':21};
 
 /**
  * @workInProgress
@@ -6301,8 +6826,6 @@ angularServiceInject("$location", function($browser) {
     return h;
   }
 }, ['$browser']);
-
-
 /**
  * @workInProgress
  * @ngdoc service
@@ -6394,787 +6917,7 @@ angularServiceInject("$log", $logFactory = function($window){
       return logFn;
     }
   }
-}, ['$window'], EAGER);
-
-/**
- * @workInProgress
- * @ngdoc service
- * @name angular.service.$exceptionHandler
- * @requires $log
- *
- * @description
- * Any uncaught exception in angular expressions is delegated to this service.
- * The default implementation simply delegates to `$log.error` which logs it into
- * the browser console.
- *
- * In unit tests, if `angular-mocks.js` is loaded, this service is overriden by
- * {@link angular.mock.service.$exceptionHandler mock $exceptionHandler}
- *
- * @example
- */
-var $exceptionHandlerFactory; //reference to be used only in tests
-angularServiceInject('$exceptionHandler', $exceptionHandlerFactory = function($log){
-  return function(e) {
-    $log.error(e);
-  };
-}, ['$log'], EAGER);
-
-/**
- * @workInProgress
- * @ngdoc service
- * @name angular.service.$updateView
- * @requires $browser
- *
- * @description
- * Calling `$updateView` enqueues the eventual update of the view. (Update the DOM to reflect the
- * model). The update is eventual, since there are often multiple updates to the model which may
- * be deferred. The default update delayed is 25 ms. This means that the view lags the model by
- * that time. (25ms is small enough that it is perceived as instantaneous by the user). The delay
- * can be adjusted by setting the delay property of the service.
- *
- * <pre>angular.service('$updateView').delay = 10</pre>
- *
- * The delay is there so that multiple updates to the model which occur sufficiently close
- * together can be merged into a single update.
- *
- * You don't usually call '$updateView' directly since angular does it for you in most cases,
- * but there are some cases when you need to call it.
- *
- *  - `$updateView()` called automatically by angular:
- *    - Your Application Controllers: Your controller code is called by angular and hence
- *      angular is aware that you may have changed the model.
- *    - Your Services: Your service is usually called by your controller code, hence same rules
- *      apply.
- *  - May need to call `$updateView()` manually:
- *    - Widgets / Directives: If you listen to any DOM events or events on any third party
- *      libraries, then angular is not aware that you may have changed state state of the
- *      model, and hence you need to call '$updateView()' manually.
- *    - 'setTimeout'/'XHR':  If you call 'setTimeout' (instead of {@link angular.service.$defer})
- *      or 'XHR' (instead of {@link angular.service.$xhr}) then you may be changing the model
- *      without angular knowledge and you may need to call '$updateView()' directly.
- *
- * NOTE: if you wish to update the view immediately (without delay), you can do so by calling
- * {@link scope.$eval} at any time from your code:
- * <pre>scope.$root.$eval()</pre>
- *
- * In unit-test mode the update is instantaneous and synchronous to simplify writing tests.
- *
- */
-
-function serviceUpdateViewFactory($browser){
-  var rootScope = this;
-  var scheduled;
-  function update(){
-    scheduled = false;
-    rootScope.$eval();
-  }
-  return $browser.isMock ? update : function(){
-    if (!scheduled) {
-      scheduled = true;
-      $browser.defer(update, serviceUpdateViewFactory.delay);
-    }
-  };
-}
-serviceUpdateViewFactory.delay = 25;
-
-angularServiceInject('$updateView', serviceUpdateViewFactory, ['$browser']);
-
-/**
- * @workInProgress
- * @ngdoc service
- * @name angular.service.$hover
- * @requires $browser
- * @requires $document
- *
- * @description
- *
- * @example
- */
-angularServiceInject("$hover", function(browser, document) {
-  var tooltip, self = this, error, width = 300, arrowWidth = 10, body = jqLite(document[0].body);
-  browser.hover(function(element, show){
-    if (show && (error = element.attr(NG_EXCEPTION) || element.attr(NG_VALIDATION_ERROR))) {
-      if (!tooltip) {
-        tooltip = {
-            callout: jqLite('<div id="ng-callout"></div>'),
-            arrow: jqLite('<div></div>'),
-            title: jqLite('<div class="ng-title"></div>'),
-            content: jqLite('<div class="ng-content"></div>')
-        };
-        tooltip.callout.append(tooltip.arrow);
-        tooltip.callout.append(tooltip.title);
-        tooltip.callout.append(tooltip.content);
-        body.append(tooltip.callout);
-      }
-      var docRect = body[0].getBoundingClientRect(),
-          elementRect = element[0].getBoundingClientRect(),
-          leftSpace = docRect.right - elementRect.right - arrowWidth;
-      tooltip.title.text(element.hasClass("ng-exception") ? "EXCEPTION:" : "Validation error...");
-      tooltip.content.text(error);
-      if (leftSpace < width) {
-        tooltip.arrow.addClass('ng-arrow-right');
-        tooltip.arrow.css({left: (width + 1)+'px'});
-        tooltip.callout.css({
-          position: 'fixed',
-          left: (elementRect.left - arrowWidth - width - 4) + "px",
-          top: (elementRect.top - 3) + "px",
-          width: width + "px"
-        });
-      } else {
-        tooltip.arrow.addClass('ng-arrow-left');
-        tooltip.callout.css({
-          position: 'fixed',
-          left: (elementRect.right + arrowWidth) + "px",
-          top: (elementRect.top - 3) + "px",
-          width: width + "px"
-        });
-      }
-    } else if (tooltip) {
-      tooltip.callout.remove();
-      tooltip = _null;
-    }
-  });
-}, ['$browser', '$document'], EAGER);
-
-/**
- * @workInProgress
- * @ngdoc service
- * @name angular.service.$invalidWidgets
- *
- * @description
- * Keeps references to all invalid widgets found during validation.
- * Can be queried to find whether there are any invalid widgets currently displayed.
- *
- * @example
- */
-angularServiceInject("$invalidWidgets", function(){
-  var invalidWidgets = [];
-
-
-  /** Remove an element from the array of invalid widgets */
-  invalidWidgets.markValid = function(element){
-    var index = indexOf(invalidWidgets, element);
-    if (index != -1)
-      invalidWidgets.splice(index, 1);
-  };
-
-
-  /** Add an element to the array of invalid widgets */
-  invalidWidgets.markInvalid = function(element){
-    var index = indexOf(invalidWidgets, element);
-    if (index === -1)
-      invalidWidgets.push(element);
-  };
-
-
-  /** Return count of all invalid widgets that are currently visible */
-  invalidWidgets.visible = function() {
-    var count = 0;
-    forEach(invalidWidgets, function(widget){
-      count = count + (isVisible(widget) ? 1 : 0);
-    });
-    return count;
-  };
-
-
-  /* At the end of each eval removes all invalid widgets that are not part of the current DOM. */
-  this.$onEval(PRIORITY_LAST, function() {
-    for(var i = 0; i < invalidWidgets.length;) {
-      var widget = invalidWidgets[i];
-      if (isOrphan(widget[0])) {
-        invalidWidgets.splice(i, 1);
-        if (widget.dealoc) widget.dealoc();
-      } else {
-        i++;
-      }
-    }
-  });
-
-
-  /**
-   * Traverses DOM element's (widget's) parents and considers the element to be an orphant if one of
-   * it's parents isn't the current window.document.
-   */
-  function isOrphan(widget) {
-    if (widget == window.document) return false;
-    var parent = widget.parentNode;
-    return !parent || isOrphan(parent);
-  }
-
-  return invalidWidgets;
-}, [], EAGER);
-
-
-
-function switchRouteMatcher(on, when, dstName) {
-  var regex = '^' + when.replace(/[\.\\\(\)\^\$]/g, "\$1") + '$',
-      params = [],
-      dst = {};
-  forEach(when.split(/\W/), function(param){
-    if (param) {
-      var paramRegExp = new RegExp(":" + param + "([\\W])");
-      if (regex.match(paramRegExp)) {
-        regex = regex.replace(paramRegExp, "([^\/]*)$1");
-        params.push(param);
-      }
-    }
-  });
-  var match = on.match(new RegExp(regex));
-  if (match) {
-    forEach(params, function(name, index){
-      dst[name] = match[index + 1];
-    });
-    if (dstName) this.$set(dstName, dst);
-  }
-  return match ? dst : _null;
-}
-
-/**
- * @workInProgress
- * @ngdoc service
- * @name angular.service.$route
- * @requires $location
- *
- * @property {Object} current Reference to the current route definition.
- * @property {Array.<Object>} routes Array of all configured routes.
- *
- * @description
- * Watches `$location.hashPath` and tries to map the hash to an existing route
- * definition. It is used for deep-linking URLs to controllers and views (HTML partials).
- *
- * The `$route` service is typically used in conjunction with {@link angular.widget.ng:view ng:view}
- * widget.
- *
- * @example
-   This example shows how changing the URL hash causes the <tt>$route</tt>
-   to match a route against the URL, and the <tt>[[ng:include]]</tt> pulls in the partial.
-   Try changing the URL in the input box to see changes.
-
-    <doc:example>
-      <doc:source>
-        <script>
-          angular.service('myApp', function($route) {
-            $route.when('/Book/:bookId', {template:'rsrc/book.html', controller:BookCntl});
-            $route.when('/Book/:bookId/ch/:chapterId', {template:'rsrc/chapter.html', controller:ChapterCntl});
-            $route.onChange(function() {
-              $route.current.scope.params = $route.current.params;
-            });
-          }, {$inject: ['$route']});
-
-          function BookCntl() {
-            this.name = "BookCntl";
-          }
-
-          function ChapterCntl() {
-            this.name = "ChapterCntl";
-          }
-        </script>
-
-        Chose:
-        <a href="#/Book/Moby">Moby</a> |
-        <a href="#/Book/Moby/ch/1">Moby: Ch1</a> |
-        <a href="#/Book/Gatsby">Gatsby</a> |
-        <a href="#/Book/Gatsby/ch/4?key=value">Gatsby: Ch4</a><br/>
-        <input type="text" name="$location.hashPath" size="80" />
-        <pre>$location={{$location}}</pre>
-        <pre>$route.current.template={{$route.current.template}}</pre>
-        <pre>$route.current.params={{$route.current.params}}</pre>
-        <pre>$route.current.scope.name={{$route.current.scope.name}}</pre>
-        <hr/>
-        <ng:include src="$route.current.template" scope="$route.current.scope"/>
-      </doc:source>
-      <doc:scenario>
-      </doc:scenario>
-    </doc:example>
- */
-angularServiceInject('$route', function(location, $updateView) {
-  var routes = {},
-      onChange = [],
-      matcher = switchRouteMatcher,
-      parentScope = this,
-      dirty = 0,
-      $route = {
-        routes: routes,
-
-        /**
-         * @workInProgress
-         * @ngdoc method
-         * @name angular.service.$route#onChange
-         * @methodOf angular.service.$route
-         *
-         * @param {function()} fn Function that will be called when `$route.current` changes.
-         * @returns {function()} The registered function.
-         *
-         * @description
-         * Register a handler function that will be called when route changes
-         */
-        onChange: function(fn) {
-          onChange.push(fn);
-          return fn;
-        },
-
-        /**
-         * @workInProgress
-         * @ngdoc method
-         * @name angular.service.$route#parent
-         * @methodOf angular.service.$route
-         *
-         * @param {Scope} [scope=rootScope] Scope to be used as parent for newly created
-         *    `$route.current.scope` scopes.
-         *
-         * @description
-         * Sets a scope to be used as the parent scope for scopes created on route change. If not
-         * set, defaults to the root scope.
-         */
-        parent: function(scope) {
-          if (scope) parentScope = scope;
-        },
-
-        /**
-         * @workInProgress
-         * @ngdoc method
-         * @name angular.service.$route#when
-         * @methodOf angular.service.$route
-         *
-         * @param {string} path Route path (matched against `$location.hash`)
-         * @param {Object} params Mapping information to be assigned to `$route.current` on route
-         *    match.
-         *
-         *    Object properties:
-         *
-         *    - `controller` – `{function()=}` – Controller fn that should be associated with newly
-         *      created scope.
-         *    - `template` – `{string=}` – path to an html template that should be used by
-         *      {@link angular.widget.ng:view ng:view} or
-         *      {@link angular.widget.ng:include ng:include} widgets.
-         *    - `redirectTo` – {(string|function())=} – value to update
-         *      {@link angular.service.$location $location} hash with and trigger route redirection.
-         *
-         *      If `redirectTo` is a function, it will be called with the following parameters:
-         *
-         *      - `{Object.<string>}` - route parameters extracted from the current
-         *        `$location.hashPath` by applying the current route template.
-         *      - `{string}` - current `$location.hash`
-         *      - `{string}` - current `$location.hashPath`
-         *      - `{string}` - current `$location.hashSearch`
-         *
-         *      The custom `redirectTo` function is expected to return a string which will be used
-         *      to update `$location.hash`.
-         *
-         * @returns {Object} route object
-         *
-         * @description
-         * Adds a new route definition to the `$route` service.
-         */
-        when:function (path, params) {
-          if (isUndefined(path)) return routes; //TODO(im): remove - not needed!
-          var route = routes[path];
-          if (!route) route = routes[path] = {};
-          if (params) extend(route, params);
-          dirty++;
-          return route;
-        },
-
-        /**
-         * @workInProgress
-         * @ngdoc method
-         * @name angular.service.$route#otherwise
-         * @methodOf angular.service.$route
-         *
-         * @description
-         * Sets route definition that will be used on route change when no other route definition
-         * is matched.
-         *
-         * @param {Object} params Mapping information to be assigned to `$route.current`.
-         */
-        otherwise: function(params) {
-          $route.when(null, params);
-        },
-
-        /**
-         * @workInProgress
-         * @ngdoc method
-         * @name angular.service.$route#reload
-         * @methodOf angular.service.$route
-         *
-         * @description
-         * Causes `$route` service to reload (and recreate the `$route.current` scope) upon the next
-         * eval even if {@link angular.service.$location $location} hasn't changed.
-         */
-        reload: function() {
-          dirty++;
-        }
-      };
-  function updateRoute(){
-    var childScope, routeParams, pathParams, segmentMatch, key, redir;
-
-    $route.current = _null;
-    forEach(routes, function(rParams, rPath) {
-      if (!pathParams) {
-        if (pathParams = matcher(location.hashPath, rPath)) {
-          routeParams = rParams;
-        }
-      }
-    });
-
-    // "otherwise" fallback
-    routeParams = routeParams || routes[_null];
-
-    if(routeParams) {
-      if (routeParams.redirectTo) {
-        if (isString(routeParams.redirectTo)) {
-          // interpolate the redirectTo string
-          redir = {hashPath: '',
-                   hashSearch: extend({}, location.hashSearch, pathParams)};
-
-          forEach(routeParams.redirectTo.split(':'), function(segment, i) {
-            if (i==0) {
-              redir.hashPath += segment;
-            } else {
-              segmentMatch = segment.match(/(\w+)(.*)/);
-              key = segmentMatch[1];
-              redir.hashPath += pathParams[key] || location.hashSearch[key];
-              redir.hashPath += segmentMatch[2] || '';
-              delete redir.hashSearch[key];
-            }
-          });
-        } else {
-          // call custom redirectTo function
-          redir = {hash: routeParams.redirectTo(pathParams, location.hash, location.hashPath,
-                                                location.hashSearch)};
-        }
-
-        location.update(redir);
-        $updateView(); //TODO this is to work around the $location<=>$browser issues
-        return;
-      }
-
-      childScope = createScope(parentScope);
-      $route.current = extend({}, routeParams, {
-        scope: childScope,
-        params: extend({}, location.hashSearch, pathParams)
-      });
-    }
-
-    //fire onChange callbacks
-    forEach(onChange, parentScope.$tryEval);
-
-    if (childScope) {
-      childScope.$become($route.current.controller);
-    }
-  }
-
-  this.$watch(function(){return dirty + location.hash;}, updateRoute);
-
-  return $route;
-}, ['$location', '$updateView']);
-
-/**
- * @workInProgress
- * @ngdoc service
- * @name angular.service.$xhr
- * @function
- * @requires $browser
- * @requires $xhr.error
- * @requires $log
- *
- * @description
- * Generates an XHR request. The $xhr service adds error handling then delegates all requests to
- * {@link angular.service.$browser $browser.xhr()}.
- *
- * @param {string} method HTTP method to use. Valid values are: `GET`, `POST`, `PUT`, `DELETE`, and
- *   `JSON`. `JSON` is a special case which causes a
- *   [JSONP](http://en.wikipedia.org/wiki/JSON#JSONP) cross domain request using script tag
- *   insertion.
- * @param {string} url Relative or absolute URL specifying the destination of the request.  For
- *   `JSON` requests, `url` should include `JSON_CALLBACK` string to be replaced with a name of an
- *   angular generated callback function.
- * @param {(string|Object)=} post Request content as either a string or an object to be stringified
- *   as JSON before sent to the server.
- * @param {function(number, (string|Object))} callback A function to be called when the response is
- *   received. The callback will be called with:
- *
- *   - {number} code [HTTP status code](http://en.wikipedia.org/wiki/List_of_HTTP_status_codes) of
- *     the response. This will currently always be 200, since all non-200 responses are routed to
- *     {@link angular.service.$xhr.error} service.
- *   - {string|Object} response Response object as string or an Object if the response was in JSON
- *     format.
- *
- * @example
-   <doc:example>
-     <doc:source>
-       <script>
-         function FetchCntl($xhr) {
-           var self = this;
-
-           this.fetch = function() {
-             self.clear();
-             $xhr(self.method, self.url, function(code, response) {
-               self.code = code;
-               self.response = response;
-             });
-           };
-
-           this.clear = function() {
-             self.code = null;
-             self.response = null;
-           };
-         }
-         FetchCntl.$inject = ['$xhr'];
-       </script>
-       <div ng:controller="FetchCntl">
-         <select name="method">
-           <option>GET</option>
-           <option>JSON</option>
-         </select>
-         <input type="text" name="url" value="index.html" size="80"/><br/>
-         <button ng:click="fetch()">fetch</button>
-         <button ng:click="clear()">clear</button>
-         <a href="" ng:click="method='GET'; url='index.html'">sample</a>
-         <a href="" ng:click="method='JSON'; url='https://www.googleapis.com/buzz/v1/activities/googlebuzz/@self?alt=json&callback=JSON_CALLBACK'">buzz</a>
-         <pre>code={{code}}</pre>
-         <pre>response={{response}}</pre>
-       </div>
-     </doc:source>
-   </doc:example>
- */
-angularServiceInject('$xhr', function($browser, $error, $log){
-  var self = this;
-  return function(method, url, post, callback){
-    if (isFunction(post)) {
-      callback = post;
-      post = _null;
-    }
-    if (post && isObject(post)) {
-      post = toJson(post);
-    }
-    $browser.xhr(method, url, post, function(code, response){
-      try {
-        if (isString(response) && /^\s*[\[\{]/.exec(response) && /[\}\]]\s*$/.exec(response)) {
-          response = fromJson(response, true);
-        }
-        if (code == 200) {
-          callback(code, response);
-        } else {
-          $error(
-            {method: method, url:url, data:post, callback:callback},
-            {status: code, body:response});
-        }
-      } catch (e) {
-        $log.error(e);
-      } finally {
-        self.$eval();
-      }
-    });
-  };
-}, ['$browser', '$xhr.error', '$log']);
-
-/**
- * @workInProgress
- * @ngdoc service
- * @name angular.service.$xhr.error
- * @function
- * @requires $log
- *
- * @description
- * Error handler for {@link angular.service.$xhr $xhr service}. An application can replaces this
- * service with one specific for the application. The default implementation logs the error to
- * {@link angular.service.$log $log.error}.
- *
- * @param {Object} request Request object.
- *
- *   The object has the following properties
- *
- *   - `method` – `{string}` – The http request method.
- *   - `url` – `{string}` – The request destination.
- *   - `data` – `{(string|Object)=} – An optional request body.
- *   - `callback` – `{function()}` – The callback function
- *
- * @param {Object} response Response object.
- *
- *   The response object has the following properties:
- *
- *   - status – {number} – Http status code.
- *   - body – {string|Object} – Body of the response.
- *
- * @example
-    <doc:example>
-      <doc:source>
-        fetch a non-existent file and log an error in the console:
-        <button ng:click="$service('$xhr')('GET', '/DOESNT_EXIST')">fetch</button>
-      </doc:source>
-    </doc:example>
- */
-angularServiceInject('$xhr.error', function($log){
-  return function(request, response){
-    $log.error('ERROR: XHR: ' + request.url, request, response);
-  };
-}, ['$log']);
-
-/**
- * @workInProgress
- * @ngdoc service
- * @name angular.service.$xhr.bulk
- * @requires $xhr
- * @requires $xhr.error
- * @requires $log
- *
- * @description
- *
- * @example
- */
-angularServiceInject('$xhr.bulk', function($xhr, $error, $log){
-  var requests = [],
-      scope = this;
-  function bulkXHR(method, url, post, callback) {
-    if (isFunction(post)) {
-      callback = post;
-      post = _null;
-    }
-    var currentQueue;
-    forEach(bulkXHR.urls, function(queue){
-      if (isFunction(queue.match) ? queue.match(url) : queue.match.exec(url)) {
-        currentQueue = queue;
-      }
-    });
-    if (currentQueue) {
-      if (!currentQueue.requests) currentQueue.requests = [];
-      currentQueue.requests.push({method: method, url: url, data:post, callback:callback});
-    } else {
-      $xhr(method, url, post, callback);
-    }
-  }
-  bulkXHR.urls = {};
-  bulkXHR.flush = function(callback){
-    forEach(bulkXHR.urls, function(queue, url){
-      var currentRequests = queue.requests;
-      if (currentRequests && currentRequests.length) {
-        queue.requests = [];
-        queue.callbacks = [];
-        $xhr('POST', url, {requests:currentRequests}, function(code, response){
-          forEach(response, function(response, i){
-            try {
-              if (response.status == 200) {
-                (currentRequests[i].callback || noop)(response.status, response.response);
-              } else {
-                $error(currentRequests[i], response);
-              }
-            } catch(e) {
-              $log.error(e);
-            }
-          });
-          (callback || noop)();
-        });
-        scope.$eval();
-      }
-    });
-  };
-  this.$onEval(PRIORITY_LAST, bulkXHR.flush);
-  return bulkXHR;
-}, ['$xhr', '$xhr.error', '$log']);
-
-
-/**
- * @workInProgress
- * @ngdoc service
- * @name angular.service.$defer
- * @requires $browser
- * @requires $log
- *
- * @description
- * Delegates to {@link angular.service.$browser.defer $browser.defer}, but wraps the `fn` function
- * into a try/catch block and delegates any exceptions to
- * {@link angular.services.$exceptionHandler $exceptionHandler} service.
- *
- * In tests you can use `$browser.defer.flush()` to flush the queue of deferred functions.
- *
- * @param {function()} fn A function, who's execution should be deferred.
- */
-angularServiceInject('$defer', function($browser, $exceptionHandler, $updateView) {
-  var scope = this;
-
-  return function(fn) {
-    $browser.defer(function() {
-      try {
-        fn();
-      } catch(e) {
-        $exceptionHandler(e);
-      } finally {
-        $updateView();
-      }
-    });
-  };
-}, ['$browser', '$exceptionHandler', '$updateView']);
-
-
-/**
- * @workInProgress
- * @ngdoc service
- * @name angular.service.$xhr.cache
- * @function
- * @requires $xhr
- *
- * @description
- * Acts just like the {@link angular.service.$xhr $xhr} service but caches responses for `GET`
- * requests. All cache misses are delegated to the $xhr service.
- *
- * @property {function()} delegate Function to delegate all the cache misses to. Defaults to
- *   the {@link angular.service.$xhr $xhr} service.
- * @property {object} data The hashmap where all cached entries are stored.
- *
- * @param {string} method HTTP method.
- * @param {string} url Destination URL.
- * @param {(string|Object)=} post Request body.
- * @param {function(number, (string|Object))} callback Response callback.
- * @param {boolean=} [verifyCache=false] If `true` then a result is immediately returned from cache
- *   (if present) while a request is sent to the server for a fresh response that will update the
- *   cached entry. The `callback` function will be called when the response is received.
- */
-angularServiceInject('$xhr.cache', function($xhr, $defer, $log){
-  var inflight = {}, self = this;
-  function cache(method, url, post, callback, verifyCache){
-    if (isFunction(post)) {
-      callback = post;
-      post = _null;
-    }
-    if (method == 'GET') {
-      var data, dataCached;
-      if (dataCached = cache.data[url]) {
-        $defer(function() { callback(200, copy(dataCached.value)); });
-        if (!verifyCache)
-          return;
-      }
-
-      if (data = inflight[url]) {
-        data.callbacks.push(callback);
-      } else {
-        inflight[url] = {callbacks: [callback]};
-        cache.delegate(method, url, post, function(status, response){
-          if (status == 200)
-            cache.data[url] = { value: response };
-          var callbacks = inflight[url].callbacks;
-          delete inflight[url];
-          forEach(callbacks, function(callback){
-            try {
-              (callback||noop)(status, copy(response));
-            } catch(e) {
-              $log.error(e);
-            }
-          });
-        });
-      }
-
-    } else {
-      cache.data = {};
-      cache.delegate(method, url, post, callback);
-    }
-  }
-  cache.data = {};
-  cache.delegate = $xhr;
-  return cache;
-}, ['$xhr.bulk', '$defer', '$log']);
-
-
+}, ['$window']);
 /**
  * @workInProgress
  * @ngdoc service
@@ -7182,7 +6925,7 @@ angularServiceInject('$xhr.cache', function($xhr, $defer, $log){
  * @requires $xhr.cache
  *
  * @description
- * Is a factory which creates a resource object that lets you interact with
+ * A factory which creates a resource object that lets you interact with
  * [RESTful](http://en.wikipedia.org/wiki/Representational_State_Transfer) server-side data sources.
  *
  * The returned resource object has action methods which provide high-level behaviors without
@@ -7379,161 +7122,623 @@ angularServiceInject('$resource', function($xhr){
   var resource = new ResourceFactory($xhr);
   return bind(resource, resource.route);
 }, ['$xhr.cache']);
-
 /**
  * @workInProgress
  * @ngdoc service
- * @name angular.service.$cookies
+ * @name angular.service.$route
+ * @requires $location
+ *
+ * @property {Object} current Reference to the current route definition.
+ * @property {Array.<Object>} routes Array of all configured routes.
+ *
+ * @description
+ * Watches `$location.hashPath` and tries to map the hash to an existing route
+ * definition. It is used for deep-linking URLs to controllers and views (HTML partials).
+ *
+ * The `$route` service is typically used in conjunction with {@link angular.widget.ng:view ng:view}
+ * widget.
+ *
+ * @example
+   This example shows how changing the URL hash causes the <tt>$route</tt>
+   to match a route against the URL, and the <tt>[[ng:include]]</tt> pulls in the partial.
+   Try changing the URL in the input box to see changes.
+
+    <doc:example>
+      <doc:source>
+        <script>
+          angular.service('myApp', function($route) {
+            $route.when('/Book/:bookId', {template:'rsrc/book.html', controller:BookCntl});
+            $route.when('/Book/:bookId/ch/:chapterId', {template:'rsrc/chapter.html', controller:ChapterCntl});
+            $route.onChange(function() {
+              $route.current.scope.params = $route.current.params;
+            });
+          }, {$inject: ['$route']});
+
+          function BookCntl() {
+            this.name = "BookCntl";
+          }
+
+          function ChapterCntl() {
+            this.name = "ChapterCntl";
+          }
+        </script>
+
+        Chose:
+        <a href="#/Book/Moby">Moby</a> |
+        <a href="#/Book/Moby/ch/1">Moby: Ch1</a> |
+        <a href="#/Book/Gatsby">Gatsby</a> |
+        <a href="#/Book/Gatsby/ch/4?key=value">Gatsby: Ch4</a><br/>
+        <input type="text" name="$location.hashPath" size="80" />
+        <pre>$location={{$location}}</pre>
+        <pre>$route.current.template={{$route.current.template}}</pre>
+        <pre>$route.current.params={{$route.current.params}}</pre>
+        <pre>$route.current.scope.name={{$route.current.scope.name}}</pre>
+        <hr/>
+        <ng:include src="$route.current.template" scope="$route.current.scope"/>
+      </doc:source>
+      <doc:scenario>
+      </doc:scenario>
+    </doc:example>
+ */
+angularServiceInject('$route', function(location, $updateView) {
+  var routes = {},
+      onChange = [],
+      matcher = switchRouteMatcher,
+      parentScope = this,
+      dirty = 0,
+      $route = {
+        routes: routes,
+
+        /**
+         * @workInProgress
+         * @ngdoc method
+         * @name angular.service.$route#onChange
+         * @methodOf angular.service.$route
+         *
+         * @param {function()} fn Function that will be called when `$route.current` changes.
+         * @returns {function()} The registered function.
+         *
+         * @description
+         * Register a handler function that will be called when route changes
+         */
+        onChange: function(fn) {
+          onChange.push(fn);
+          return fn;
+        },
+
+        /**
+         * @workInProgress
+         * @ngdoc method
+         * @name angular.service.$route#parent
+         * @methodOf angular.service.$route
+         *
+         * @param {Scope} [scope=rootScope] Scope to be used as parent for newly created
+         *    `$route.current.scope` scopes.
+         *
+         * @description
+         * Sets a scope to be used as the parent scope for scopes created on route change. If not
+         * set, defaults to the root scope.
+         */
+        parent: function(scope) {
+          if (scope) parentScope = scope;
+        },
+
+        /**
+         * @workInProgress
+         * @ngdoc method
+         * @name angular.service.$route#when
+         * @methodOf angular.service.$route
+         *
+         * @param {string} path Route path (matched against `$location.hash`)
+         * @param {Object} params Mapping information to be assigned to `$route.current` on route
+         *    match.
+         *
+         *    Object properties:
+         *
+         *    - `controller` – `{function()=}` – Controller fn that should be associated with newly
+         *      created scope.
+         *    - `template` – `{string=}` – path to an html template that should be used by
+         *      {@link angular.widget.ng:view ng:view} or
+         *      {@link angular.widget.ng:include ng:include} widgets.
+         *    - `redirectTo` – {(string|function())=} – value to update
+         *      {@link angular.service.$location $location} hash with and trigger route redirection.
+         *
+         *      If `redirectTo` is a function, it will be called with the following parameters:
+         *
+         *      - `{Object.<string>}` - route parameters extracted from the current
+         *        `$location.hashPath` by applying the current route template.
+         *      - `{string}` - current `$location.hash`
+         *      - `{string}` - current `$location.hashPath`
+         *      - `{string}` - current `$location.hashSearch`
+         *
+         *      The custom `redirectTo` function is expected to return a string which will be used
+         *      to update `$location.hash`.
+         *
+         * @returns {Object} route object
+         *
+         * @description
+         * Adds a new route definition to the `$route` service.
+         */
+        when:function (path, params) {
+          if (isUndefined(path)) return routes; //TODO(im): remove - not needed!
+          var route = routes[path];
+          if (!route) route = routes[path] = {};
+          if (params) extend(route, params);
+          dirty++;
+          return route;
+        },
+
+        /**
+         * @workInProgress
+         * @ngdoc method
+         * @name angular.service.$route#otherwise
+         * @methodOf angular.service.$route
+         *
+         * @description
+         * Sets route definition that will be used on route change when no other route definition
+         * is matched.
+         *
+         * @param {Object} params Mapping information to be assigned to `$route.current`.
+         */
+        otherwise: function(params) {
+          $route.when(null, params);
+        },
+
+        /**
+         * @workInProgress
+         * @ngdoc method
+         * @name angular.service.$route#reload
+         * @methodOf angular.service.$route
+         *
+         * @description
+         * Causes `$route` service to reload (and recreate the `$route.current` scope) upon the next
+         * eval even if {@link angular.service.$location $location} hasn't changed.
+         */
+        reload: function() {
+          dirty++;
+        }
+      };
+
+
+  function switchRouteMatcher(on, when, dstName) {
+    var regex = '^' + when.replace(/[\.\\\(\)\^\$]/g, "\$1") + '$',
+        params = [],
+        dst = {};
+    forEach(when.split(/\W/), function(param){
+      if (param) {
+        var paramRegExp = new RegExp(":" + param + "([\\W])");
+        if (regex.match(paramRegExp)) {
+          regex = regex.replace(paramRegExp, "([^\/]*)$1");
+          params.push(param);
+        }
+      }
+    });
+    var match = on.match(new RegExp(regex));
+    if (match) {
+      forEach(params, function(name, index){
+        dst[name] = match[index + 1];
+      });
+      if (dstName) this.$set(dstName, dst);
+    }
+    return match ? dst : _null;
+  }
+
+
+  function updateRoute(){
+    var childScope, routeParams, pathParams, segmentMatch, key, redir;
+
+    $route.current = _null;
+    forEach(routes, function(rParams, rPath) {
+      if (!pathParams) {
+        if (pathParams = matcher(location.hashPath, rPath)) {
+          routeParams = rParams;
+        }
+      }
+    });
+
+    // "otherwise" fallback
+    routeParams = routeParams || routes[_null];
+
+    if(routeParams) {
+      if (routeParams.redirectTo) {
+        if (isString(routeParams.redirectTo)) {
+          // interpolate the redirectTo string
+          redir = {hashPath: '',
+                   hashSearch: extend({}, location.hashSearch, pathParams)};
+
+          forEach(routeParams.redirectTo.split(':'), function(segment, i) {
+            if (i==0) {
+              redir.hashPath += segment;
+            } else {
+              segmentMatch = segment.match(/(\w+)(.*)/);
+              key = segmentMatch[1];
+              redir.hashPath += pathParams[key] || location.hashSearch[key];
+              redir.hashPath += segmentMatch[2] || '';
+              delete redir.hashSearch[key];
+            }
+          });
+        } else {
+          // call custom redirectTo function
+          redir = {hash: routeParams.redirectTo(pathParams, location.hash, location.hashPath,
+                                                location.hashSearch)};
+        }
+
+        location.update(redir);
+        $updateView(); //TODO this is to work around the $location<=>$browser issues
+        return;
+      }
+
+      childScope = createScope(parentScope);
+      $route.current = extend({}, routeParams, {
+        scope: childScope,
+        params: extend({}, location.hashSearch, pathParams)
+      });
+    }
+
+    //fire onChange callbacks
+    forEach(onChange, parentScope.$tryEval);
+
+    if (childScope) {
+      childScope.$become($route.current.controller);
+    }
+  }
+
+
+  this.$watch(function(){return dirty + location.hash;}, updateRoute);
+
+  return $route;
+}, ['$location', '$updateView']);
+/**
+ * @workInProgress
+ * @ngdoc service
+ * @name angular.service.$updateView
  * @requires $browser
  *
  * @description
- * Provides read/write access to browser's cookies.
+ * Calling `$updateView` enqueues the eventual update of the view. (Update the DOM to reflect the
+ * model). The update is eventual, since there are often multiple updates to the model which may
+ * be deferred. The default update delayed is 25 ms. This means that the view lags the model by
+ * that time. (25ms is small enough that it is perceived as instantaneous by the user). The delay
+ * can be adjusted by setting the delay property of the service.
  *
- * Only a simple Object is exposed and by adding or removing properties to/from
- * this object, new cookies are created/deleted at the end of current $eval.
+ * <pre>angular.service('$updateView').delay = 10</pre>
  *
- * @example
+ * The delay is there so that multiple updates to the model which occur sufficiently close
+ * together can be merged into a single update.
+ *
+ * You don't usually call '$updateView' directly since angular does it for you in most cases,
+ * but there are some cases when you need to call it.
+ *
+ *  - `$updateView()` called automatically by angular:
+ *    - Your Application Controllers: Your controller code is called by angular and hence
+ *      angular is aware that you may have changed the model.
+ *    - Your Services: Your service is usually called by your controller code, hence same rules
+ *      apply.
+ *  - May need to call `$updateView()` manually:
+ *    - Widgets / Directives: If you listen to any DOM events or events on any third party
+ *      libraries, then angular is not aware that you may have changed state state of the
+ *      model, and hence you need to call '$updateView()' manually.
+ *    - 'setTimeout'/'XHR':  If you call 'setTimeout' (instead of {@link angular.service.$defer})
+ *      or 'XHR' (instead of {@link angular.service.$xhr}) then you may be changing the model
+ *      without angular knowledge and you may need to call '$updateView()' directly.
+ *
+ * NOTE: if you wish to update the view immediately (without delay), you can do so by calling
+ * {@link scope.$eval} at any time from your code:
+ * <pre>scope.$root.$eval()</pre>
+ *
+ * In unit-test mode the update is instantaneous and synchronous to simplify writing tests.
+ *
  */
-angularServiceInject('$cookies', function($browser) {
-  var rootScope = this,
-      cookies = {},
-      lastCookies = {},
-      lastBrowserCookies;
 
-  //creates a poller fn that copies all cookies from the $browser to service & inits the service
-  $browser.addPollFn(function() {
-    var currentCookies = $browser.cookies();
-    if (lastBrowserCookies != currentCookies) { //relies on browser.cookies() impl
-      lastBrowserCookies = currentCookies;
-      copy(currentCookies, lastCookies);
-      copy(currentCookies, cookies);
-      rootScope.$eval();
-    }
-  })();
-
-  //at the end of each eval, push cookies
-  //TODO: this should happen before the "delayed" watches fire, because if some cookies are not
-  //      strings or browser refuses to store some cookies, we update the model in the push fn.
-  this.$onEval(PRIORITY_LAST, push);
-
-  return cookies;
-
-
-  /**
-   * Pushes all the cookies from the service to the browser and verifies if all cookies were stored.
-   */
-  function push(){
-    var name,
-        value,
-        browserCookies,
-        updated;
-
-    //delete any cookies deleted in $cookies
-    for (name in lastCookies) {
-      if (isUndefined(cookies[name])) {
-        $browser.cookies(name, _undefined);
-      }
-    }
-
-    //update all cookies updated in $cookies
-    for(name in cookies) {
-      value = cookies[name];
-      if (!isString(value)) {
-        if (isDefined(lastCookies[name])) {
-          cookies[name] = lastCookies[name];
-        } else {
-          delete cookies[name];
-        }
-      } else if (value !== lastCookies[name]) {
-        $browser.cookies(name, value);
-        updated = true;
-      }
-    }
-
-    //verify what was actually stored
-    if (updated){
-      updated = false;
-      browserCookies = $browser.cookies();
-
-      for (name in cookies) {
-        if (cookies[name] !== browserCookies[name]) {
-          //delete or reset all cookies that the browser dropped from $cookies
-          if (isUndefined(browserCookies[name])) {
-            delete cookies[name];
-          } else {
-            cookies[name] = browserCookies[name];
-          }
-          updated = true;
-        }
-      }
-    }
+function serviceUpdateViewFactory($browser){
+  var rootScope = this;
+  var scheduled;
+  function update(){
+    scheduled = false;
+    rootScope.$eval();
   }
-}, ['$browser']);
+  return $browser.isMock ? update : function(){
+    if (!scheduled) {
+      scheduled = true;
+      $browser.defer(update, serviceUpdateViewFactory.delay);
+    }
+  };
+}
+serviceUpdateViewFactory.delay = 25;
 
+angularServiceInject('$updateView', serviceUpdateViewFactory, ['$browser']);
 /**
  * @workInProgress
  * @ngdoc service
- * @name angular.service.$cookieStore
- * @requires $cookies
+ * @name angular.service.$window
  *
  * @description
- * Provides a key-value (string-object) storage, that is backed by session cookies.
- * Objects put or retrieved from this storage are automatically serialized or
- * deserialized by angular's toJson/fromJson.
+ * A reference to the browser's `window` object. While `window`
+ * is globally available in JavaScript, it causes testability problems, because
+ * it is a global variable. In angular we always refer to it through the
+ * `$window` service, so it may be overriden, removed or mocked for testing.
+ *
+ * All expressions are evaluated with respect to current scope so they don't
+ * suffer from window globality.
+ *
+ * @example
+   <doc:example>
+     <doc:source>
+       <input ng:init="$window = $service('$window'); greeting='Hello World!'" type="text" name="greeting" />
+       <button ng:click="$window.alert(greeting)">ALERT</button>
+     </doc:source>
+     <doc:scenario>
+     </doc:scenario>
+   </doc:example>
+ */
+angularServiceInject("$window", bind(window, identity, window));
+/**
+ * @workInProgress
+ * @ngdoc service
+ * @name angular.service.$xhr.bulk
+ * @requires $xhr
+ * @requires $xhr.error
+ * @requires $log
+ *
+ * @description
+ *
  * @example
  */
-angularServiceInject('$cookieStore', function($store) {
-
-  return {
-    /**
-     * @workInProgress
-     * @ngdoc method
-     * @name angular.service.$cookieStore#get
-     * @methodOf angular.service.$cookieStore
-     *
-     * @description
-     * Returns the value of given cookie key
-     *
-     * @param {string} key Id to use for lookup.
-     * @returns {Object} Deserialized cookie value.
-     */
-    get: function(key) {
-      return fromJson($store[key]);
-    },
-
-    /**
-     * @workInProgress
-     * @ngdoc method
-     * @name angular.service.$cookieStore#put
-     * @methodOf angular.service.$cookieStore
-     *
-     * @description
-     * Sets a value for given cookie key
-     *
-     * @param {string} key Id for the `value`.
-     * @param {Object} value Value to be stored.
-     */
-    put: function(key, value) {
-      $store[key] = toJson(value);
-    },
-
-    /**
-     * @workInProgress
-     * @ngdoc method
-     * @name angular.service.$cookieStore#remove
-     * @methodOf angular.service.$cookieStore
-     *
-     * @description
-     * Remove given cookie
-     *
-     * @param {string} key Id of the key-value pair to delete.
-     */
-    remove: function(key) {
-      delete $store[key];
+angularServiceInject('$xhr.bulk', function($xhr, $error, $log){
+  var requests = [],
+      scope = this;
+  function bulkXHR(method, url, post, callback) {
+    if (isFunction(post)) {
+      callback = post;
+      post = _null;
     }
+    var currentQueue;
+    forEach(bulkXHR.urls, function(queue){
+      if (isFunction(queue.match) ? queue.match(url) : queue.match.exec(url)) {
+        currentQueue = queue;
+      }
+    });
+    if (currentQueue) {
+      if (!currentQueue.requests) currentQueue.requests = [];
+      currentQueue.requests.push({method: method, url: url, data:post, callback:callback});
+    } else {
+      $xhr(method, url, post, callback);
+    }
+  }
+  bulkXHR.urls = {};
+  bulkXHR.flush = function(callback){
+    forEach(bulkXHR.urls, function(queue, url){
+      var currentRequests = queue.requests;
+      if (currentRequests && currentRequests.length) {
+        queue.requests = [];
+        queue.callbacks = [];
+        $xhr('POST', url, {requests:currentRequests}, function(code, response){
+          forEach(response, function(response, i){
+            try {
+              if (response.status == 200) {
+                (currentRequests[i].callback || noop)(response.status, response.response);
+              } else {
+                $error(currentRequests[i], response);
+              }
+            } catch(e) {
+              $log.error(e);
+            }
+          });
+          (callback || noop)();
+        });
+        scope.$eval();
+      }
+    });
   };
+  this.$onEval(PRIORITY_LAST, bulkXHR.flush);
+  return bulkXHR;
+}, ['$xhr', '$xhr.error', '$log']);
+/**
+ * @workInProgress
+ * @ngdoc service
+ * @name angular.service.$xhr.cache
+ * @function
+ * @requires $xhr
+ *
+ * @description
+ * Acts just like the {@link angular.service.$xhr $xhr} service but caches responses for `GET`
+ * requests. All cache misses are delegated to the $xhr service.
+ *
+ * @property {function()} delegate Function to delegate all the cache misses to. Defaults to
+ *   the {@link angular.service.$xhr $xhr} service.
+ * @property {object} data The hashmap where all cached entries are stored.
+ *
+ * @param {string} method HTTP method.
+ * @param {string} url Destination URL.
+ * @param {(string|Object)=} post Request body.
+ * @param {function(number, (string|Object))} callback Response callback.
+ * @param {boolean=} [verifyCache=false] If `true` then a result is immediately returned from cache
+ *   (if present) while a request is sent to the server for a fresh response that will update the
+ *   cached entry. The `callback` function will be called when the response is received.
+ */
+angularServiceInject('$xhr.cache', function($xhr, $defer, $log){
+  var inflight = {}, self = this;
+  function cache(method, url, post, callback, verifyCache){
+    if (isFunction(post)) {
+      callback = post;
+      post = _null;
+    }
+    if (method == 'GET') {
+      var data, dataCached;
+      if (dataCached = cache.data[url]) {
+        $defer(function() { callback(200, copy(dataCached.value)); });
+        if (!verifyCache)
+          return;
+      }
 
-}, ['$cookies']);
+      if (data = inflight[url]) {
+        data.callbacks.push(callback);
+      } else {
+        inflight[url] = {callbacks: [callback]};
+        cache.delegate(method, url, post, function(status, response){
+          if (status == 200)
+            cache.data[url] = { value: response };
+          var callbacks = inflight[url].callbacks;
+          delete inflight[url];
+          forEach(callbacks, function(callback){
+            try {
+              (callback||noop)(status, copy(response));
+            } catch(e) {
+              $log.error(e);
+            }
+          });
+        });
+      }
+
+    } else {
+      cache.data = {};
+      cache.delegate(method, url, post, callback);
+    }
+  }
+  cache.data = {};
+  cache.delegate = $xhr;
+  return cache;
+}, ['$xhr.bulk', '$defer', '$log']);
+/**
+ * @workInProgress
+ * @ngdoc service
+ * @name angular.service.$xhr.error
+ * @function
+ * @requires $log
+ *
+ * @description
+ * Error handler for {@link angular.service.$xhr $xhr service}. An application can replaces this
+ * service with one specific for the application. The default implementation logs the error to
+ * {@link angular.service.$log $log.error}.
+ *
+ * @param {Object} request Request object.
+ *
+ *   The object has the following properties
+ *
+ *   - `method` – `{string}` – The http request method.
+ *   - `url` – `{string}` – The request destination.
+ *   - `data` – `{(string|Object)=} – An optional request body.
+ *   - `callback` – `{function()}` – The callback function
+ *
+ * @param {Object} response Response object.
+ *
+ *   The response object has the following properties:
+ *
+ *   - status – {number} – Http status code.
+ *   - body – {string|Object} – Body of the response.
+ *
+ * @example
+    <doc:example>
+      <doc:source>
+        fetch a non-existent file and log an error in the console:
+        <button ng:click="$service('$xhr')('GET', '/DOESNT_EXIST')">fetch</button>
+      </doc:source>
+    </doc:example>
+ */
+angularServiceInject('$xhr.error', function($log){
+  return function(request, response){
+    $log.error('ERROR: XHR: ' + request.url, request, response);
+  };
+}, ['$log']);
+/**
+ * @workInProgress
+ * @ngdoc service
+ * @name angular.service.$xhr
+ * @function
+ * @requires $browser
+ * @requires $xhr.error
+ * @requires $log
+ *
+ * @description
+ * Generates an XHR request. The $xhr service adds error handling then delegates all requests to
+ * {@link angular.service.$browser $browser.xhr()}.
+ *
+ * @param {string} method HTTP method to use. Valid values are: `GET`, `POST`, `PUT`, `DELETE`, and
+ *   `JSON`. `JSON` is a special case which causes a
+ *   [JSONP](http://en.wikipedia.org/wiki/JSON#JSONP) cross domain request using script tag
+ *   insertion.
+ * @param {string} url Relative or absolute URL specifying the destination of the request.  For
+ *   `JSON` requests, `url` should include `JSON_CALLBACK` string to be replaced with a name of an
+ *   angular generated callback function.
+ * @param {(string|Object)=} post Request content as either a string or an object to be stringified
+ *   as JSON before sent to the server.
+ * @param {function(number, (string|Object))} callback A function to be called when the response is
+ *   received. The callback will be called with:
+ *
+ *   - {number} code [HTTP status code](http://en.wikipedia.org/wiki/List_of_HTTP_status_codes) of
+ *     the response. This will currently always be 200, since all non-200 responses are routed to
+ *     {@link angular.service.$xhr.error} service.
+ *   - {string|Object} response Response object as string or an Object if the response was in JSON
+ *     format.
+ *
+ * @example
+   <doc:example>
+     <doc:source>
+       <script>
+         function FetchCntl($xhr) {
+           var self = this;
+
+           this.fetch = function() {
+             self.clear();
+             $xhr(self.method, self.url, function(code, response) {
+               self.code = code;
+               self.response = response;
+             });
+           };
+
+           this.clear = function() {
+             self.code = null;
+             self.response = null;
+           };
+         }
+         FetchCntl.$inject = ['$xhr'];
+       </script>
+       <div ng:controller="FetchCntl">
+         <select name="method">
+           <option>GET</option>
+           <option>JSON</option>
+         </select>
+         <input type="text" name="url" value="index.html" size="80"/><br/>
+         <button ng:click="fetch()">fetch</button>
+         <button ng:click="clear()">clear</button>
+         <a href="" ng:click="method='GET'; url='index.html'">sample</a>
+         <a href="" ng:click="method='JSON'; url='https://www.googleapis.com/buzz/v1/activities/googlebuzz/@self?alt=json&callback=JSON_CALLBACK'">buzz</a>
+         <pre>code={{code}}</pre>
+         <pre>response={{response}}</pre>
+       </div>
+     </doc:source>
+   </doc:example>
+ */
+angularServiceInject('$xhr', function($browser, $error, $log){
+  var self = this;
+  return function(method, url, post, callback){
+    if (isFunction(post)) {
+      callback = post;
+      post = _null;
+    }
+    if (post && isObject(post)) {
+      post = toJson(post);
+    }
+    $browser.xhr(method, url, post, function(code, response){
+      try {
+        if (isString(response) && /^\s*[\[\{]/.exec(response) && /[\}\]]\s*$/.exec(response)) {
+          response = fromJson(response, true);
+        }
+        if (code == 200) {
+          callback(code, response);
+        } else {
+          $error(
+            {method: method, url:url, data:post, callback:callback},
+            {status: code, body:response});
+        }
+      } catch (e) {
+        $log.error(e);
+      } finally {
+        self.$eval();
+      }
+    });
+  };
+}, ['$browser', '$xhr.error', '$log']);
 /**
  * @workInProgress
  * @ngdoc directive
@@ -7544,7 +7749,7 @@ angularServiceInject('$cookieStore', function($store) {
  *  before the template enters execution mode during bootstrap.
  *
  * @element ANY
- * @param {expression} expression to eval.
+ * @param {expression} expression {@link guide.expression Expression} to eval.
  *
  * @example
    <doc:example>
@@ -7579,7 +7784,7 @@ angularDirective("ng:init", function(expression){
  * The `ng:controller` directive specifies the MVC controller class
  *
  * @element ANY
- * @param {expression} expression to eval.
+ * @param {expression} expression {@link guide.expression Expression} to eval.
  *
  * @example
  * Here is a simple form for editing the user contact information. Adding, removing clearing and
@@ -7666,7 +7871,7 @@ angularDirective("ng:controller", function(expression){
  * without displaying the result to the user.
  *
  * @element ANY
- * @param {expression} expression to eval.
+ * @param {expression} expression {@link guide.expression Expression} to eval.
  *
  * @example
  * Notice that `{{` `obj.multiplied = obj.a * obj.b` `}}` has a side effect of assigning
@@ -7714,7 +7919,7 @@ angularDirective("ng:eval", function(expression){
  * `<span ng:bind="expression"></span>` at bootstrap time.
  *
  * @element ANY
- * @param {expression} expression to eval.
+ * @param {expression} expression {@link guide.expression Expression} to eval.
  *
  * @example
  * Try it here: enter text in text box and watch the greeting change.
@@ -7779,15 +7984,17 @@ function compileBindTemplate(template){
     var bindings = [];
     forEach(parseBindings(template), function(text){
       var exp = binding(text);
-      bindings.push(exp ? function(element){
-        var error, value = this.$tryEval(exp, function(e){
-          error = toJson(e);
-        });
-        elementError(element, NG_EXCEPTION, error);
-        return error ? error : value;
-      } : function() {
-        return text;
-      });
+      bindings.push(exp
+        ? function(element){
+            var error, value = this.$tryEval(exp, function(e){
+              error = toJson(e);
+            });
+            elementError(element, NG_EXCEPTION, error);
+            return error ? error : value;
+          }
+        : function() {
+            return text;
+          });
     });
     bindTemplateCache[template] = fn = function(element, prettyPrintJson){
       var parts = [], self = this,
@@ -7871,15 +8078,15 @@ var REMOVE_ATTRIBUTES = {
  * @name angular.directive.ng:bind-attr
  *
  * @description
- * The `ng:bind-attr` attribute specifies that the element attributes
- * which should be replaced by the expression in it. Unlike `ng:bind`
- * the `ng:bind-attr` contains a JSON key value pairs representing
- * which attributes need to be changed. You don’t usually write the
- * `ng:bind-attr` in the HTML since embedding
- * <tt ng:non-bindable>{{expression}}</tt> into the
- * attribute directly is the preferred way. The attributes get
- * translated into `<span ng:bind-attr="{attr:expression}"/>` at
- * bootstrap time.
+ * The `ng:bind-attr` attribute specifies that {@link guide.data-binding databindings}  should be
+ * created between element attributes and given expressions. Unlike `ng:bind` the `ng:bind-attr`
+ * contains a JSON key value pairs representing which attributes need to be mapped to which
+ * {@link guide.expression expressions}.
+ *
+ * You don’t usually write the `ng:bind-attr` in the HTML since embedding
+ * <tt ng:non-bindable>{{expression}}</tt> into the attribute directly as the attribute value is
+ * preferred. The attributes get translated into `<span ng:bind-attr="{attr:expression}"/>` at
+ * compile time.
  *
  * This HTML snippet is preferred way of working with `ng:bind-attr`
  * <pre>
@@ -7961,7 +8168,7 @@ angularDirective("ng:bind-attr", function(expression){
  * element is clicked.
  *
  * @element ANY
- * @param {expression} expression to eval upon click.
+ * @param {expression} expression {@link guide.expression Expression} to eval upon click.
  *
  * @example
    <doc:example>
@@ -8012,7 +8219,7 @@ angularDirective("ng:click", function(expression, element){
  * server and reloading the current page).
  *
  * @element form
- * @param {expression} expression to eval.
+ * @param {expression} expression {@link guide.expression Expression} to eval.
  *
  * @example
    <doc:example>
@@ -8050,51 +8257,6 @@ angularDirective("ng:submit", function(expression, element) {
 });
 
 
-/**
- * @workInProgress
- * @ngdoc directive
- * @name angular.directive.ng:watch
- *
- * @description
- * The `ng:watch` allows you watch a variable and then execute
- * an evaluation on variable change.
- *
- * @element ANY
- * @param {expression} expression to eval.
- *
- * @example
- * Notice that the counter is incremented
- * every time you change the text.
-   <doc:example>
-     <doc:source>
-      <div ng:init="counter=0" ng:watch="name: counter = counter+1">
-        <input type="text" name="name" value="hello"><br/>
-        Change counter: {{counter}} Name: {{name}}
-      </div>
-     </doc:source>
-     <doc:scenario>
-       it('should check ng:watch', function(){
-         expect(using('.doc-example-live').binding('counter')).toBe('2');
-         using('.doc-example-live').input('name').enter('abc');
-         expect(using('.doc-example-live').binding('counter')).toBe('3');
-       });
-     </doc:scenario>
-   </doc:example>
- */
-//TODO: delete me, since having watch in UI is logic in UI. (leftover form getangular)
-angularDirective("ng:watch", function(expression, element){
-  return function(element){
-    var self = this;
-    parser(expression).watch()({
-      addListener:function(watch, exp){
-        self.$watch(watch, function(){
-          return exp(self);
-        }, element);
-      }
-    });
-  };
-});
-
 function ngClass(selector) {
   return function(expression, element){
     var existing = element[0].className + ' ';
@@ -8120,7 +8282,7 @@ function ngClass(selector) {
  * conditionally.
  *
  * @element ANY
- * @param {expression} expression to eval.
+ * @param {expression} expression {@link guide.expression Expression} to eval.
  *
  * @example
    <doc:example>
@@ -8161,7 +8323,7 @@ angularDirective("ng:class", ngClass(function(){return true;}));
  * and takes affect only on odd (even) rows.
  *
  * @element ANY
- * @param {expression} expression to eval. Must be inside
+ * @param {expression} expression {@link guide.expression Expression} to eval. Must be inside
  * `ng:repeat`.
  *
  * @example
@@ -8199,7 +8361,7 @@ angularDirective("ng:class-odd", ngClass(function(i){return i % 2 === 0;}));
  * and takes affect only on odd (even) rows.
  *
  * @element ANY
- * @param {expression} expression to eval. Must be inside
+ * @param {expression} expression {@link guide.expression Expression} to eval. Must be inside
  * `ng:repeat`.
  *
  * @example
@@ -8236,8 +8398,8 @@ angularDirective("ng:class-even", ngClass(function(i){return i % 2 === 1;}));
  * of the HTML conditionally.
  *
  * @element ANY
- * @param {expression} expression if truthy then the element is
- * shown or hidden respectively.
+ * @param {expression} expression If the {@link guide.expression expression} is truthy then the element
+ *     is shown or hidden respectively.
  *
  * @example
    <doc:example>
@@ -8277,8 +8439,8 @@ angularDirective("ng:show", function(expression, element){
  * of the HTML conditionally.
  *
  * @element ANY
- * @param {expression} expression if truthy then the element is
- * shown or hidden respectively.
+ * @param {expression} expression If the {@link guide.expression expression} truthy then the element
+ *     is shown or hidden respectively.
  *
  * @example
    <doc:example>
@@ -8317,9 +8479,8 @@ angularDirective("ng:hide", function(expression, element){
  * The ng:style allows you to set CSS style on an HTML element conditionally.
  *
  * @element ANY
- * @param {expression} expression which evals to an object whes key's are
- *        CSS style names and values are coresponding values for those
- *        CSS keys.
+ * @param {expression} expression {@link guide.expression Expression} which evals to an object whose
+ *      keys are CSS style names and values are corresponding values for those CSS keys.
  *
  * @example
    <doc:example>
@@ -8398,10 +8559,10 @@ angularTextMarkup('{{}}', function(text, textNode, parentElement) {
       forEach(parseBindings(text), function(text){
         var exp = binding(text);
         if (exp) {
-          newElement = self.element('span');
+          newElement = jqLite('<span>');
           newElement.attr('ng:bind', exp);
         } else {
-          newElement = self.text(text);
+          newElement = jqLite(document.createTextNode(text));
         }
         if (msie && text.charAt(0) == ' ') {
           newElement = jqLite('<span>&nbsp;</span>');
@@ -8848,9 +9009,9 @@ function valueAccessor(scope, element) {
       invalidWidgets.markValid(element);
     } else {
       var error, validateScope = inherit(scope, {$element:element});
-      error = required && !value ?
-              'Required' :
-              (value ? validator(validateScope, value) : _null);
+      error = required && !value
+              ? 'Required'
+              : (value ? validator(validateScope, value) : _null);
       elementError(element, NG_VALIDATION_ERROR, error);
       lastError = error;
       if (error) {
@@ -9072,7 +9233,7 @@ angularWidget('option', function(){
   return function(option) {
     var select = option.parent();
     var isMultiple = select[0].type == 'select-multiple';
-    var scope = retrieveScope(select);
+    var scope = select.scope();
     var model = modelAccessor(scope, select);
 
     //if parent select doesn't have a name, don't bother doing anything any more
@@ -9187,8 +9348,7 @@ angularWidget('ng:include', function(element){
           xhr('GET', src, function(code, response){
             element.html(response);
             childScope = useScope || createScope(scope);
-            compiler.compile(element)(element, childScope);
-            childScope.$init();
+            compiler.compile(element)(childScope);
             scope.$eval(onloadExp);
           });
         } else {
@@ -9254,6 +9414,7 @@ angularWidget('ng:include', function(element){
       </doc:scenario>
     </doc:example>
  */
+//TODO(im): remove all the code related to using and inline equals
 var ngSwitch = angularWidget('ng:switch', function (element){
   var compiler = this,
       watchExpr = element.attr("on"),
@@ -9301,11 +9462,10 @@ var ngSwitch = angularWidget('ng:switch', function (element){
       forEach(cases, function(switchCase){
         if (!found && switchCase.when(childScope, value)) {
           found = true;
-          var caseElement = quickClone(switchCase.element);
-          element.append(caseElement);
           childScope.$tryEval(switchCase.change, element);
-          switchCase.template(caseElement, childScope);
-          childScope.$init();
+          switchCase.template(childScope, function(caseElement){
+            element.append(caseElement);
+          });
         }
       });
     });
@@ -9316,8 +9476,7 @@ var ngSwitch = angularWidget('ng:switch', function (element){
 }, {
   equals: function(on, when) {
     return ''+on == when;
-  },
-  route: switchRouteMatcher
+  }
 });
 
 
@@ -9399,11 +9558,11 @@ angularWidget('a', function() {
       </doc:scenario>
     </doc:example>
  */
-angularWidget("@ng:repeat", function(expression, element){
+angularWidget('@ng:repeat', function(expression, element){
   element.removeAttr('ng:repeat');
-  element.replaceWith(this.comment("ng:repeat: " + expression));
-  var template = this.compile(element);
-  return function(reference){
+  element.replaceWith(jqLite('<!-- ng:repeat: ' + expression + ' --!>'));
+  var linker = this.compile(element);
+  return function(iterStartElement){
     var match = expression.match(/^\s*(.+)\s+in\s+(.*)\s*$/),
         lhs, rhs, valueIdent, keyIdent;
     if (! match) {
@@ -9424,8 +9583,8 @@ angularWidget("@ng:repeat", function(expression, element){
     this.$onEval(function(){
       var index = 0,
           childCount = children.length,
-          lastElement = reference,
-          collection = this.$tryEval(rhs, reference),
+          lastIterElement = iterStartElement,
+          collection = this.$tryEval(rhs, iterStartElement),
           is_array = isArray(collection),
           collectionLength = 0,
           childScope,
@@ -9446,22 +9605,24 @@ angularWidget("@ng:repeat", function(expression, element){
             childScope = children[index];
             childScope[valueIdent] = collection[key];
             if (keyIdent) childScope[keyIdent] = key;
+            lastIterElement = childScope.$element;
           } else {
             // grow children
-            childScope = template(quickClone(element), createScope(currentScope));
+            childScope = createScope(currentScope);
             childScope[valueIdent] = collection[key];
             if (keyIdent) childScope[keyIdent] = key;
-            lastElement.after(childScope.$element);
             childScope.$index = index;
-            childScope.$position = index == 0 ?
-                                      'first' :
-                                      (index == collectionLength - 1 ? 'last' : 'middle');
-            childScope.$element.attr('ng:repeat-index', index);
-            childScope.$init();
+            childScope.$position = index == 0
+                ? 'first'
+                : (index == collectionLength - 1 ? 'last' : 'middle');
             children.push(childScope);
+            linker(childScope, function(clone){
+              clone.attr('ng:repeat-index', index);
+              lastIterElement.after(clone);
+              lastIterElement = clone;
+            });
           }
           childScope.$eval();
-          lastElement = childScope.$element;
           index ++;
         }
       }
@@ -9469,7 +9630,7 @@ angularWidget("@ng:repeat", function(expression, element){
       while(children.length > index) {
         children.pop().$element.remove();
       }
-    }, reference);
+    }, iterStartElement);
   };
 });
 
@@ -9579,8 +9740,7 @@ angularWidget('ng:view', function(element) {
         if (src) {
           $xhr('GET', src, function(code, response){
             element.html(response);
-            compiler.compile(element)(element, childScope);
-            childScope.$init();
+            compiler.compile(element)(childScope);
           });
         } else {
           element.html('');
@@ -9649,8 +9809,13 @@ extend(angular, {
   'isArray': isArray
 });
 
+//try to bind to jquery now so that one can write angular.element().read()
+//but we will rebind on bootstrap again.
+bindJQuery();
 
-  jqLite(document).ready(function(){
+
+
+  jqLiteWrap(document).ready(function(){
     angularInit(angularJsConfig(document));
   });
 

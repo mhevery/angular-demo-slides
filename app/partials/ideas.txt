@@ -1,0 +1,49 @@
+* show editing from command debugger
+* explain parts of the app
+* explain dependency injection.
+* rebuild the same in angular.
+* anatomy of angular app
+* globality of onevent and the need for scopes.
+* you can sprinkle angular
+
+<div class="floating-slide">
+  <ul>
+    <li>Things to note:
+      <ul>
+        <li>Heavy use of DOM manipulation</li>
+        <li>Not clear where UI ends and Behavior begins</li>
+        <li>Need to understand the nuances of the DOM event system</li>
+        <li>Can not test without the UI</li>
+        <li>Lacks of structure</li>
+      </ul>
+    </li>
+    <li>Can we do better?</li>
+      <ul>
+        <li>Would would you change in HTML to make this easier?</li>
+        <li>How would you make this testable?</li>
+      </ul>
+  </ul>
+</div>
+
+
+SLIDES:
+* debbuging (show how you can interact with html)
+* Directives (show how you can build your own vocabulary DSL)
+* dependency injection
+* $routes
+* $resources.
+
+
+Brad's ideas:
+tell me more about why I care at the begging (more problem definition)
+  * synchronizing model / views
+  * moving data to/from server
+  * setup/autobinding/main method
+  * structure for an app/scafolding
+
+issues when you don't have: di, autobinding, data-binding, structure.
+
+building apps should be fun again!
+
+
+IDEAS: have some nice pictures
