@@ -25,8 +25,6 @@ function PresentationCntrl($route, $window) {
   slide('html_is_broken',    'HTML is broken');
   slide('knowledge',         'What you need to build a web-app');
   slide('jQuery',            'jQuery solves DOM manipulation');
-//  slide('angular',           'A fresh start');
-//  slide('difference',        "It's different");
 
   slide('dom_manipulation',  'Manipulating DOM');
   slide('input',             'Reading input');
@@ -36,6 +34,8 @@ function PresentationCntrl($route, $window) {
   slide('overview',          'Overview');
   slide('template',          'View as a projection of model');
   slide('filters',           'Rendering your data');
+  slide('directives',        'Directives');
+  slide('lifecycle',         'Lifecycle');
   slide('services1',         'Basic building blocks of web-app');
   slide('services2',         'Basic building blocks of web-app');
   slide('di',                'Dependency injection');
@@ -48,5 +48,8 @@ function PresentationCntrl($route, $window) {
   slide('maintenance',       "Reduce Maintainance");
   slide('development_speed', "Development Speed");
   slide('server',            "Simplify server implementation");
+
+  slide('difference',        "It's different");
+  slide('angular',           'A fresh start');
 }
 

@@ -42,12 +42,18 @@ angular.widget('pre', function(template){
     pre.append(example);
     pre.append(code);
     window.$ = $;
-    return function(){
-      SyntaxHighlighter.highlight();
-    };
+    return highlight;
+  } else if (template.hasClass('code-only')){
+    template.addClass('brush: js; html-script: true; toolbar: false;');
+    return highlight;
+  }
 
-    function defer(fn){
-      window.setTimeout(fn, 0);
-    };
+  // no DI in template function. :-(
+  function defer(fn){
+    window.setTimeout(fn, 0);
+  };
+
+  function highlight(){
+    SyntaxHighlighter.highlight();
   }
 });

@@ -391,3 +391,37 @@ function TzDate(offset, timestamp) {
 
 //make "tzDateInstance instanceof Date" return true
 TzDate.prototype = Date.prototype;
+
+/**
+ * Expose common services in tests under the `$testing` property.
+ *
+ * Currently exposed services are:
+ * * {@link angular.service.$browser $browser}
+ *
+ * @example
+ *
+ * <pre>
+    var rootScope = angular.scope();
+
+    // browser is exposed under $testing
+    rootScope.$testing.$browser.xhr.expectGET(...).respond(...);
+    rootScope.$testing.$browser.xhr.flush();
+
+ * </pre>
+ *
+ */
+angular.service('$testing', function($browser){
+  this.$testing = {
+    $browser: $browser
+  }
+}, {$inject:['$browser'], $eager:true});
+
+if (beforeEach) {
+  beforeEach(function(){
+    this.addMatchers({
+      toEqualData: function(expected) {
+        return angular.equals(this.actual, expected);
+      }
+    });
+  });
+}

@@ -1,0 +1,25 @@
+<div class="left-column">
+  <pre class="code">
+    ===script===
+    angular.directive('my:time', function() {
+      return function($defer, linkElement) {
+        (function updateTime(){
+          linkElement.text(new Date().toString());
+          $defer(updateTime, 1000);
+        })()
+      };
+    });
+    ===/script===
+    <div my:time></div>
+  </pre>
+</div>
+
+<div class="right-column">
+<pre class="markdown">
+* We can teach HTML new tricks
+* Directives can add behavior to any HTML element
+* DI helps with testability
+</pre>
+</div>
+
+

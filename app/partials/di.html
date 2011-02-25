@@ -19,6 +19,12 @@
       }
     }
     ===/script===
+    <div ng:controller="MyCntrl">
+      <div ng:show="msg" class="notify">
+        <span>{{msg}}</span>
+      </div>
+      <button ng:click="notify()">notify</button>
+    </div>
     <style>
       .notify {
         position: absolute;
@@ -37,13 +43,7 @@
         border: 1px solid black;
       }
     </style>
-    <div ng:controller="MyCntrl">
-      <div ng:show="msg" class="notify">
-        <span>{{msg}}</span>
-      </div>
-      <button ng:click="notify()">notify</button>
-    </div>
-  </p:code>
+  </pre>
 </div>
 
 <div class="right-column">

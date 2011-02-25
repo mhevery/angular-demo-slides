@@ -1,29 +1,27 @@
-/* jasmine specs for controllers go here */
+function MyCntrl($resource){
+  var Book = $resource('books.json');
 
-describe('MyCtrl1', function(){
-  var myCtrl1;
+  this.fetch = function(){
+    this.books = Book.query();
+  };
+}
 
-  beforeEach(function(){
-    myCtrl1 = new MyCtrl1();
-  });
+describe('MyCntrl', function(){
+  it('should fetch books', function(){
+    var rootScope = angular.scope();
+    var myCntrl = rootScope.$new(MyCntrl);
 
+    expect(myCntrl.books).toBeUndefined();
 
-  it('should ....', function() {
-    //spec body
-  });
-});
+    // train the browser expectations
+    rootScope.$testing.$browser.xhr.expectGET('books.json').respond([{name:'A'}, {name:'B'}]);
 
+    myCntrl.fetch();
+    expect(myCntrl.books).toEqual([]);
 
-describe('MyCtrl2', function(){
-  var myCtrl2;
+    // flush the responses
+    rootScope.$testing.$browser.xhr.flush();
 
-
-  beforeEach(function(){
-    myCtrl2 = new MyCtrl2();
-  });
-
-
-  it('should ....', function() {
-    //spec body
+    expect(myCntrl.books).toEqualData([{name:'A'}, {name:'B'}]);
   });
 });

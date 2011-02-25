@@ -1,4 +1,11 @@
 <div class="left-column">
+  <pre class="code-only">
+    it('should load books', function(){
+      expect(binding('books')).toBe();
+      element(':button:contains(fetch)').click();
+      expect(binding('books')).toContain('Great Gatsby');
+    });
+  </pre>
   <pre class="code">
     ===script===
     function MyCntrl($resource){
@@ -18,11 +25,10 @@
 
 <div class="right-column">
 <pre class="markdown">
-* $resource allows the for RESTfull API
-* $resource separates the definition part form the usage
-* Because it is injectable service it can be easily mocked/tested
-* `query` is an example of operation, but many more can be defined
-* callbacks are optional
+* Test runner understand how angular works and can wait just the right amount of time
+* convert asynchronous nature of JS to synchronous tests
+* RSpec like specs
+* Easy to build DSL for your specs
 </pre>
 </div>
 
