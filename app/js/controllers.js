@@ -25,12 +25,22 @@ function PresentationCntrl($route, $window) {
   slide('html_is_broken',    'HTML is broken');
   slide('knowledge',         'What you need to build a web-app');
   slide('jQuery',            'jQuery solves DOM manipulation');
-  slide('angular',           'A fresh start');
-  slide('difference',        "It's different");
+//  slide('angular',           'A fresh start');
+//  slide('difference',        "It's different");
+
   slide('dom_manipulation',  'Manipulating DOM');
   slide('input',             'Reading input');
   slide('password',          'Application Behavior');
   slide('password_xhr',      'XHR');
+
+  slide('overview',          'Overview');
+  slide('template',          'View as a projection of model');
+  slide('filters',           'Rendering your data');
+  slide('services1',         'Basic building blocks of web-app');
+  slide('services2',         'Basic building blocks of web-app');
+  slide('di',                'Dependency injection');
+  slide('unit-testing',      'Unit testing');
+  slide('e2e-testing',       'Ende-to-end testing');
 
   slide('app_logic',         "Focus on what matters");
   slide('scafolding',        "Reduce Chaos");

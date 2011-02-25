@@ -1,0 +1,23 @@
+<div class="left-column">
+  <pre class="code">
+    ===script===
+    angular.filter('markdown', function(text){
+      return new Showdown.converter().makeHtml(text);
+    });
+    ===/script===
+    <textarea name="markup">*Hello* **world**!</textarea>
+    <pre>{{markup | markdown}}</pre>
+    <div>{{markup | markdown | html}}</div>
+  </p:code>
+</div>
+
+<div class="right-column">
+<pre class="markdown">
+* We can teach angular new tricks
+* We use showdown to create a filter
+* We use built in HTML to inline the HTML
+* HTML is sanitized. Try injecting script.
+</pre>
+</div>
+
+

@@ -27,7 +27,8 @@
 
 
 SLIDES:
-* debbuging (show how you can interact with html)
+* show markdown as filter
+* debbuging (show how you can interact with html form)
 * Directives (show how you can build your own vocabulary DSL)
 * dependency injection
 * $routes

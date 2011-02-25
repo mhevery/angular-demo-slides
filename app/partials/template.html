@@ -1,0 +1,69 @@
+<div class="left-column">
+  <pre class="code">
+    ===script===
+    function MyData(){
+      this.portfolio = [
+        {symbol: 'ABC', qty:123, value:25.3},
+        {symbol: 'BCD', qty:321, value:5},
+        {symbol: 'CDE', qty:200, value:2.5},
+        {symbol: 'DEF', qty:100, value:.75}
+      ];
+      // examine me in debugger
+      window.model = this;
+    }
+    ===/script===
+    <div ng:controller="MyData">
+      Filter: <input type="text" name="filter"/>
+      <table>
+       <tr>
+        <th>Symbol</th>
+        <th>Qty</th>
+        <th>Value</th>
+        <th>Total</th>
+       </tr>
+       <tr ng:repeat="s in portfolio.$filter({symbol:filter})">
+        <td>{{s.symbol}}</td>
+        <td>
+         <input type="text" name="s.qty" ng:format="number"/>
+        </td>
+        <td>
+         <input type="text" name="s.value" ng:format="number"/>
+        </td>
+        <td class="right">
+         {{ s.qty * s.value | currency}}
+        </td>
+       </tr>
+       <tr>
+        <td colspan="3">Total:</td>
+        <td class="right">
+         {{ portfolio.$sum('qty*value') | currency}}
+        </td>
+       </tr>
+      </table>
+    </div>
+  </p:code>
+</div>
+
+<div class="right-column">
+<div class="center">
+  <img src="img/ViewProjection.png">
+</div>
+<pre class="markdown">
+* Template: projection of model into a view
+  * declarative
+  * live
+  * bidirectional
+  * extensible
+* Building Blocks
+  * directives
+  * validators / formatters
+  * filters
+  * type-augmentation
+* Open your browser's debugger
+  * `model.portfolio`
+  * `model.filter = "bc"`
+  * `model.$eval()`
+</pre>
+</div>
+
+

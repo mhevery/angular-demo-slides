@@ -30,7 +30,7 @@ h2 {
 
 li {
   font-family: helvetica, arial, sans-serif;
-  font-size: 40px;
+  font-size: 30px;
   padding-top: .5em;
 }
 
@@ -77,4 +77,17 @@ div.syntaxhighlighter > table {
 /* Code snippet */
 fieldset.code > div{
   font-size: 80%;
+}
+
+.center {
+  text-align: center;
+}
+
+.right {
+  text-align: right;
+}
+
+.clip {
+  max-height: 15em;
+  overflow: scroll;
 }
