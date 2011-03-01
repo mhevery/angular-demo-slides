@@ -18,10 +18,17 @@ body > h1 {
   padding: .25em;
 }
 
-h2 {
-  border-bottom: 1px solid black;
-  padding: .25em 0;
-  margin: 0 .25em .25em .25em;
+.ng-view h1 {
+  font-size: 5em;
+}
+
+.ng-view h2 {
+  font-size: 3em;
+}
+
+.space {
+  width: 3em;
+  display: inline-block;
 }
 
 .example h1 {
