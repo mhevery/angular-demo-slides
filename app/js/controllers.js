@@ -22,41 +22,36 @@ function PresentationCntrl($route, $window) {
         {seq:slideCount, template:'partials/' + partial + '.html', title:title});
   }
 
-  slide('intro/00',            '');
-  slide('intro/01',            'What\'s wrong with HTML');
-  slide('intro/02',            'HTML');
-  slide('intro/03',            'JavaScript');
-  slide('intro/04',            'AJAX / Web 2.0');
-  slide('intro/05',            'Lack of Abstraction');
+  slide('0_intro/00',   '');
+  slide('0_intro/01',   'What\'s wrong with HTML');
+  slide('0_intro/02',   'HTML');
+  slide('0_intro/03',   'JavaScript');
+  slide('0_intro/04',   'AJAX / Web 2.0');
+  slide('0_intro/05',   'Lack of Abstraction');
 
-//  slide('html_is_broken',    'HTML is broken');
-//  slide('knowledge',         'What you need to build a web-app');
-//  slide('jQuery',            'jQuery solves DOM manipulation');
-//
-//  slide('dom_manipulation',  'Manipulating DOM');
-//  slide('input',             'Reading input');
-//  slide('password',          'Application Behavior');
-//  slide('password_xhr',      'XHR');
-//
-//  slide('overview',          'Overview');
-//  slide('template',          'View as a projection of model');
-//  slide('filters',           'Rendering your data');
-//  slide('directives',        'Directives');
-//  slide('lifecycle',         'Lifecycle');
-//  slide('services1',         'Basic building blocks of web-app');
-//  slide('services2',         'Basic building blocks of web-app');
-//  slide('di',                'Dependency injection');
-//  slide('unit-testing',      'Unit testing');
-//  slide('e2e-testing',       'Ende-to-end testing');
-//
-//  slide('app_logic',         "Focus on what matters");
-//  slide('scafolding',        "Reduce Chaos");
-//  slide('learning_curve',    "Shorten Learning Curve");
-//  slide('maintenance',       "Reduce Maintainance");
-//  slide('development_speed', "Development Speed");
-//  slide('server',            "Simplify server implementation");
-//
-//  slide('difference',        "It's different");
-//  slide('angular',           'A fresh start');
+  slide('1_html/00',    'But what about ...');
+  slide('1_html/01',    'Hello Document!');
+  slide('1_html/02',    'Hello JavaScript!');
+  slide('1_html/03',    'Hello jQuery!');
+  slide('1_html/04',    'Hello <angular/>!');
+  slide('1_html/05',    'Hello <angular/> MVC!');
+
+  slide('2_form/00',    'Hello form');
+  slide('2_form/01',    'Hello form');
+  slide('2_form/02',    'Hello form');
+  slide('2_form/03',    'Hello form');
+  slide('2_form/04',    'jQuery???');
+  slide('2_form/05',    'jQuery <3');
+  slide('2_form/06',    'web-app >>> DOM manipulation');
+
+  slide('3_angular/00', 'increase the abstraction');
+  slide('3_angular/01', 'XHR');
+  slide('3_angular/02', 'Controlers and DI');
+
+  slide('4_testing/00', 'Testing Behavior');
+  slide('4_testing/01', 'How Testable?');
+  slide('4_testing/02', 'Separation of Concerns');
+  slide('4_testing/03', 'Dependency Injection');
+  slide('4_testing/04', 'Test Herness');
 }
 

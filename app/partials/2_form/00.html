@@ -1,0 +1,24 @@
+<div class="center">
+  <div class="slide">
+    <pre class="code">
+      ===script===
+      $(function(){
+        var name = $('#name');
+        var greeting = $('#greeting');
+
+        function update(){
+            greeting.text('Hello ' + name.val() + '!');
+        }
+
+        update();
+
+        name.bind('keydown', function(){
+          setTimeout(update, 0);
+        });
+      });
+      ===/script===
+      <input id="name" value="John">
+      <p id="greeting"></p>
+    </pre>
+  </div>
+</div>

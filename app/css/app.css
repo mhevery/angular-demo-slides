@@ -59,6 +59,19 @@ ul ul {
   -ms-box-sizing: border-box;
 }
 
+fieldset {
+  text-align: left;
+}
+
+fieldset > legend {
+  font-weight: bold;
+  font-size: 20px;
+}
+
+fieldset > div {
+  font-size: 20px;
+}
+
 .navigation {
   float: right;
 }
@@ -82,10 +95,6 @@ div.syntaxhighlighter > table {
 }
 
 /* Code snippet */
-fieldset.code > div{
-  font-size: 80%;
-}
-
 .center {
   text-align: center;
 }
@@ -105,4 +114,11 @@ fieldset.code > div{
   text-align: center;
   border-top: 1px solid black;
   clear: both;
+}
+
+.slide {
+  display: inline-block;
+  width: 800px;
+  font-size-adjust: 3em;
+  text-align: left;
 }

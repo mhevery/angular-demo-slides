@@ -23,7 +23,8 @@ angular.widget('pre', function(template){
       .replace(/===script===/mg, '<script>')
       .replace(/===\/script===/mg, '</script>')
       .replace(/&lt;/mg, '<')
-      .replace(/&gt;/mg, '>');
+      .replace(/&gt;/mg, '>')
+      .replace(/&amp;/mg, '&');
 
     // turns out that <script> tag is removed in .html()
     // so we have to code it as p:script and the rename it.
@@ -42,6 +43,15 @@ angular.widget('pre', function(template){
     pre.append(example);
     pre.append(code);
     window.$ = $;
+    defer(function(){
+      if (document.fireEvent) {
+        document.fireEvent('on' + load);
+      } else {
+        var evnt = document.createEvent('HTMLEvents');
+        evnt.initEvent('load', true, false);
+        document.dispatchEvent(evnt);
+      }
+    });
     return highlight;
   } else if (template.hasClass('code-only')){
     template.addClass('brush: js; html-script: true; toolbar: false;');
