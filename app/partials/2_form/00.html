@@ -1,13 +1,16 @@
 <div class="center">
   <div class="slide">
     <pre class="code">
+      <input id="name" value="John">
+      <p id="greeting"></p>
+
       ===script===
       $(function(){
         var name = $('#name');
         var greeting = $('#greeting');
 
         function update(){
-            greeting.text('Hello ' + name.val() + '!');
+          greeting.text('Hello ' + name.val() + '!');
         }
 
         update();
@@ -17,8 +20,6 @@
         });
       });
       ===/script===
-      <input id="name" value="John">
-      <p id="greeting"></p>
     </pre>
   </div>
 </div>

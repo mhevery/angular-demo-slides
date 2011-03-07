@@ -45,7 +45,7 @@ angular.widget('pre', function(template){
     window.$ = $;
     defer(function(){
       if (document.fireEvent) {
-        document.fireEvent('on' + load);
+        document.fireEvent('onload');
       } else {
         var evnt = document.createEvent('HTMLEvents');
         evnt.initEvent('load', true, false);

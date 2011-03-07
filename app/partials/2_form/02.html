@@ -1,6 +1,16 @@
 <div class="center">
   <div class="slide">
     <pre class="code">
+      <select id="salutation">
+        <option>Hello</option>
+        <option>Greetings</option>
+        <option>Salut</option>
+        <option>Ahoj</option>
+        <option>Bonjour</option>
+      </select>
+      <input id="name" value="John">
+      <p id="greeting"></p>
+
       ===script===
       $(function(){
         var salutation = $('#salutation');
@@ -21,15 +31,6 @@
         salutation.bind('change', update);
       });
       ===/script===
-      <select id="salutation">
-        <option>Hello</option>
-        <option>Greetings</option>
-        <option>Salut</option>
-        <option>Ahoj</option>
-        <option>Bonjour</option>
-      </select>
-      <input id="name" value="John">
-      <p id="greeting"></p>
     </pre>
   </div>
 </div>

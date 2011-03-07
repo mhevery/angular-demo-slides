@@ -586,14 +586,14 @@ function isLeafNode (node) {
  *  </doc:source>
  *  <doc:scenario>
    it('should print that initialy the form object is NOT equal to master', function() {
-     expect(element('.doc-example input[name=master.salutation]').val()).toBe('Hello');
-     expect(element('.doc-example input[name=master.name]').val()).toBe('world');
-     expect(element('.doc-example span').css('display')).toBe('inline');
+     expect(element('.doc-example-live input[name=master.salutation]').val()).toBe('Hello');
+     expect(element('.doc-example-live input[name=master.name]').val()).toBe('world');
+     expect(element('.doc-example-live span').css('display')).toBe('inline');
    });
 
    it('should make form and master equal when the copy button is clicked', function() {
-     element('.doc-example button').click();
-     expect(element('.doc-example span').css('display')).toBe('none');
+     element('.doc-example-live button').click();
+     expect(element('.doc-example-live span').css('display')).toBe('none');
    });
  *  </doc:scenario>
  * </doc:example>
@@ -667,14 +667,14 @@ function copy(source, destination){
  *  </doc:source>
  *  <doc:scenario>
      it('should print that initialy greeting is equal to the hardcoded value object', function() {
-       expect(element('.doc-example input[name=greeting.salutation]').val()).toBe('Hello');
-       expect(element('.doc-example input[name=greeting.name]').val()).toBe('world');
-       expect(element('.doc-example span').css('display')).toBe('none');
+       expect(element('.doc-example-live input[name=greeting.salutation]').val()).toBe('Hello');
+       expect(element('.doc-example-live input[name=greeting.name]').val()).toBe('world');
+       expect(element('.doc-example-live span').css('display')).toBe('none');
      });
 
      it('should say that the objects are not equal when the form is modified', function() {
        input('greeting.name').enter('kitty');
-       expect(element('.doc-example span').css('display')).toBe('inline');
+       expect(element('.doc-example-live span').css('display')).toBe('inline');
      });
  *  </doc:scenario>
  * </doc:example>
@@ -798,55 +798,7 @@ function merge(src, dst) {
 }
 
 
-/**
- * @workInProgress
- * @ngdoc function
- * @name angular.compile
- * @function
- *
- * @description
- * Compiles a piece of HTML string or DOM into a view and produces a linking function, which can
- * then be used to link {@link angular.scope scope} and the template together. The compilation
- * process walks the DOM tree and tries to match DOM elements to {@link angular.markup markup},
- * {@link angular.attrMarkup attrMarkup}, {@link angular.widget widgets}, and
- * {@link angular.directive directives}. For each match it executes coresponding markup, \
- * attrMarkup, widget or directive template function and collects the instance functions into a
- * single linking function which is then returned. The linking function can then be used
- * many-times-over on clones of compiled DOM structure, (For example when compiling
- * {@link angular.widget.@ng:repeat repeater} the resulting linking function is called once for
- * each item in the collection. The `ng:repeat` does this by cloning the template DOM once for
- * each item in collection and then calling the linking function to link the cloned template
- * with the a new scope for each item in the collection.)
- *
-   <pre>
-    var mvc1 = angular.compile(window.document)();
-    mvc1.view; // compiled view elment
-    mvc1.scope; // scope bound to the element
-
-    var mvc2 = angular.compile('<div ng:click="clicked = true">click me</div>')();
-   </pre>
- *
- * @param {string|DOMElement} element Element or HTML to compile into a template function.
- * @returns {function([scope][, cloneAttachFn])} a template function which is used to bind element
- * and scope. Where:
- *
- *   * `scope` - {@link angular.scope scope} A scope to bind to. If none specified, then a new
- *               root scope is created.
- *   * `cloneAttachFn` - If `cloneAttachFn` is provided, then the link function will clone the
- *               `template` and call the `cloneAttachFn` allowing the caller to attach the
- *               clonned elements to the DOM at the approriate place. The `cloneAttachFn` is
- *               called as: <br/> `cloneAttachFn(clonedElement, scope)`:
- *
- *     * `clonedElement` - is a clone of the originale `element` passed into the compiler.
- *     * `scope` - is the current scope with which the linking function is working with.
- *
- * Calling the template function returns object: `{scope:?, view:?}`, where:
- *
- *   * `view` - the DOM element which represents the compiled template. Either same or clone of
- *           `element` specifed in compile or template function.
- *   * `scope` - scope to which the element is bound to. Either a root scope or scope specified
- *           in the template function.
- */
+/** @name angular.compile */
 function compile(element) {
   return new Compiler(angularTextMarkup, angularAttrMarkup, angularDirective, angularWidget)
     .compile(element);
@@ -1048,7 +1000,7 @@ function encodeUriSegment(val) {
 function angularInit(config){
   if (config.autobind) {
     // TODO default to the source of angular.js
-    var scope = compile(window.document)(createScope({'$config':config})).scope,
+    var scope = compile(window.document)(createScope({'$config':config})),
         $browser = scope.$service('$browser');
 
     if (config.css)
@@ -1342,6 +1294,84 @@ Template.prototype = {
 ///////////////////////////////////
 //Compiler
 //////////////////////////////////
+
+/**
+ * @workInProgress
+ * @ngdoc function
+ * @name angular.compile
+ * @function
+ *
+ * @description
+ * Compiles a piece of HTML string or DOM into a template and produces a template function, which
+ * can then be used to link {@link angular.scope scope} and the template together.
+ *
+ * The compilation is a process of walking the DOM tree and trying to match DOM elements to
+ * {@link angular.markup markup}, {@link angular.attrMarkup attrMarkup},
+ * {@link angular.widget widgets}, and {@link angular.directive directives}. For each match it
+ * executes coresponding markup, attrMarkup, widget or directive template function and collects the
+ * instance functions into a single template function which is then returned.
+ *
+ * The template function can then be used once to produce the view or as it is the case with
+ * {@link angular.widget.@ng:repeat repeater} many-times, in which case each call results in a view
+ * that is a DOM clone of the original template.
+ *
+   <pre>
+    //copile the entire window.document and give me the scope bound to this template.
+    var rootSscope = angular.compile(window.document)();
+
+    //compile a piece of html
+    var rootScope2 = angular.compile(''<div ng:click="clicked = true">click me</div>')();
+
+    //compile a piece of html and retain reference to both the dom and scope
+    var template = angular.element('<div ng:click="clicked = true">click me</div>'),
+        scoope = angular.compile(view)();
+    //at this point template was transformed into a view
+   </pre>
+ *
+ *
+ * @param {string|DOMElement} element Element or HTML to compile into a template function.
+ * @returns {function([scope][, cloneAttachFn])} a template function which is used to bind template
+ * (a DOM element/tree) to a scope. Where:
+ *
+ *   * `scope` - A {@link angular.scope scope} to bind to. If none specified, then a new
+ *               root scope is created.
+ *   * `cloneAttachFn` - If `cloneAttachFn` is provided, then the link function will clone the
+ *               `template` and call the `cloneAttachFn` function allowing the caller to attach the
+ *               cloned elements to the DOM document at the approriate place. The `cloneAttachFn` is
+ *               called as: <br/> `cloneAttachFn(clonedElement, scope)` where:
+ *
+ *     * `clonedElement` - is a clone of the original `element` passed into the compiler.
+ *     * `scope` - is the current scope with which the linking function is working with.
+ *
+ * Calling the template function returns the scope to which the element is bound to. It is either
+ * the same scope as the one passed into the template function, or if none were provided it's the
+ * newly create scope.
+ *
+ * If you need access to the bound view, there are two ways to do it:
+ *
+ * - If you are not asking the linking function to clone the template, create the DOM element(s)
+ *   before you send them to the compiler and keep this reference around.
+ *   <pre>
+ *     var view = angular.element('<p>{{total}}</p>'),
+ *         scope = angular.compile(view)();
+ *   </pre>
+ *
+ * - if on the other hand, you need the element to be cloned, the view reference from the original
+ *   example would not point to the clone, but rather to the original template that was cloned. In
+ *   this case, you can access the clone via the cloneAttachFn:
+ *   <pre>
+ *     var original = angular.element('<p>{{total}}</p>'),
+ *         scope = someParentScope.$new(),
+ *         clone;
+ *
+ *     angular.compile(original)(scope, function(clonedElement, scope) {
+ *       clone = clonedElement;
+ *       //attach the clone to DOM document at the right place
+ *     });
+ *
+ *     //now we have reference to the cloned DOM via `clone`
+ *   </pre>
+ */
 function Compiler(markup, attrMarkup, directives, widgets){
   this.markup = markup;
   this.attrMarkup = attrMarkup;
@@ -1368,7 +1398,7 @@ Compiler.prototype = {
       // important!!: we must call our jqLite.clone() since the jQuery one is trying to be smart
       // and sometimes changes the structure of the DOM.
       var element = cloneConnectFn
-        ? JQLitePrototype.clone.call(templateElement) // IMPORTAN!!!
+        ? JQLitePrototype.clone.call(templateElement) // IMPORTANT!!!
         : templateElement;
         scope = scope || createScope();
       element.data($$scope, scope);
@@ -1376,7 +1406,7 @@ Compiler.prototype = {
       (cloneConnectFn||noop)(element, scope);
       template.attach(element, scope);
       scope.$eval();
-      return {scope:scope, view:element};
+      return scope;
     };
   },
 
@@ -2240,7 +2270,7 @@ function createInjector(providerScope, providers, cache) {
   return function inject(value, scope, args){
     var returnValue, provider;
     if (isString(value)) {
-      if (!cache.hasOwnProperty(value)) {
+      if (!(value in cache)) {
         provider = providers[value];
         if (!provider) throw "Unknown provider for '"+value+"'.";
         cache[value] = inject(provider, providerScope);
@@ -3450,7 +3480,7 @@ function Browser(window, document, body, XHR, $log) {
    * @name angular.service.$browser#defer
    * @methodOf angular.service.$browser
    * @param {function()} fn A function, who's execution should be defered.
-   * @param {int=} [delay=0] of milliseconds to defer the function execution.
+   * @param {number=} [delay=0] of milliseconds to defer the function execution.
    *
    * @description
    * Executes a fn asynchroniously via `setTimeout(fn, delay)`.
@@ -4378,7 +4408,7 @@ var angularArray = {
          });
 
          it('should add an entry and recalculate', function() {
-           element('.doc-example a:contains("add item")').click();
+           element('.doc-example-live a:contains("add item")').click();
            using('.doc-example-live tr:nth-child(3)').input('item.qty').enter('20');
            using('.doc-example-live tr:nth-child(3)').input('item.cost').enter('100');
 
@@ -4433,20 +4463,20 @@ var angularArray = {
        </doc:source>
        <doc:scenario>
          it('should initialize the task list with for tasks', function() {
-           expect(repeater('.doc-example ul li', 'task in tasks').count()).toBe(4);
-           expect(repeater('.doc-example ul li', 'task in tasks').column('task')).
+           expect(repeater('.doc-example-live ul li', 'task in tasks').count()).toBe(4);
+           expect(repeater('.doc-example-live ul li', 'task in tasks').column('task')).
              toEqual(['Learn Angular', 'Read Documentation', 'Check out demos',
                       'Build cool applications']);
          });
 
          it('should initialize the task list with for tasks', function() {
-           element('.doc-example ul li a:contains("X"):first').click();
-           expect(repeater('.doc-example ul li', 'task in tasks').count()).toBe(3);
+           element('.doc-example-live ul li a:contains("X"):first').click();
+           expect(repeater('.doc-example-live ul li', 'task in tasks').count()).toBe(3);
 
-           element('.doc-example ul li a:contains("X"):last').click();
-           expect(repeater('.doc-example ul li', 'task in tasks').count()).toBe(2);
+           element('.doc-example-live ul li a:contains("X"):last').click();
+           expect(repeater('.doc-example-live ul li', 'task in tasks').count()).toBe(2);
 
-           expect(repeater('.doc-example ul li', 'task in tasks').column('task')).
+           expect(repeater('.doc-example-live ul li', 'task in tasks').column('task')).
              toEqual(['Read Documentation', 'Check out demos']);
          });
        </doc:scenario>
@@ -4669,23 +4699,23 @@ var angularArray = {
          });
 
          it('should create an empty record when "add empty" is clicked', function() {
-           element('.doc-example a:contains("add empty")').click();
+           element('.doc-example-live a:contains("add empty")').click();
            expect(binding('people')).toBe('people = [{\n  "name":"",\n  "sex":null}]');
          });
 
          it('should create a "John" record when "add \'John\'" is clicked', function() {
-           element('.doc-example a:contains("add \'John\'")').click();
+           element('.doc-example-live a:contains("add \'John\'")').click();
            expect(binding('people')).toBe('people = [{\n  "name":"John",\n  "sex":"male"}]');
          });
 
          it('should create a "Mary" record when "add \'Mary\'" is clicked', function() {
-           element('.doc-example a:contains("add \'Mary\'")').click();
+           element('.doc-example-live a:contains("add \'Mary\'")').click();
            expect(binding('people')).toBe('people = [{\n  "name":"Mary",\n  "sex":"female"}]');
          });
 
          it('should delete a record when "X" is clicked', function() {
-            element('.doc-example a:contains("add empty")').click();
-            element('.doc-example li a:contains("X"):first').click();
+            element('.doc-example-live a:contains("add empty")').click();
+            element('.doc-example-live li a:contains("X"):first').click();
             expect(binding('people')).toBe('people = []');
          });
        </doc:scenario>
@@ -4737,7 +4767,7 @@ var angularArray = {
          });
 
          it('should recalculate when updated', function() {
-           using('.doc-example li:first-child').input('item.points').enter('23');
+           using('.doc-example-live li:first-child').input('item.points').enter('23');
            expect(binding('items.$count(\'points==1\')')).toEqual(1);
            expect(binding('items.$count(\'points>1\')')).toEqual(2);
          });
@@ -4813,23 +4843,23 @@ var angularArray = {
        <doc:scenario>
          it('should be reverse ordered by aged', function() {
            expect(binding('predicate')).toBe('Sorting predicate = -age');
-           expect(repeater('.doc-example table', 'friend in friends').column('friend.age')).
+           expect(repeater('.doc-example-live table', 'friend in friends').column('friend.age')).
              toEqual(['35', '29', '21', '19', '10']);
-           expect(repeater('.doc-example table', 'friend in friends').column('friend.name')).
+           expect(repeater('.doc-example-live table', 'friend in friends').column('friend.name')).
              toEqual(['Adam', 'Julie', 'Mike', 'Mary', 'John']);
          });
 
          it('should reorder the table when user selects different predicate', function() {
-           element('.doc-example a:contains("Name")').click();
-           expect(repeater('.doc-example table', 'friend in friends').column('friend.name')).
+           element('.doc-example-live a:contains("Name")').click();
+           expect(repeater('.doc-example-live table', 'friend in friends').column('friend.name')).
              toEqual(['Adam', 'John', 'Julie', 'Mary', 'Mike']);
-           expect(repeater('.doc-example table', 'friend in friends').column('friend.age')).
+           expect(repeater('.doc-example-live table', 'friend in friends').column('friend.age')).
              toEqual(['35', '10', '29', '19', '21']);
 
-           element('.doc-example a:contains("Phone")+a:contains("^")').click();
-           expect(repeater('.doc-example table', 'friend in friends').column('friend.phone')).
+           element('.doc-example-live a:contains("Phone")+a:contains("^")').click();
+           expect(repeater('.doc-example-live table', 'friend in friends').column('friend.phone')).
              toEqual(['555-9876', '555-8765', '555-5678', '555-4321', '555-1212']);
-           expect(repeater('.doc-example table', 'friend in friends').column('friend.name')).
+           expect(repeater('.doc-example-live table', 'friend in friends').column('friend.name')).
              toEqual(['Mary', 'Julie', 'Adam', 'Mike', 'John']);
          });
        </doc:scenario>
@@ -4911,7 +4941,7 @@ var angularArray = {
        </doc:source>
        <doc:scenario>
          it('should limit the numer array to first three items', function() {
-           expect(element('.doc-example input[name=limit]').val()).toBe('3');
+           expect(element('.doc-example-live input[name=limit]').val()).toBe('3');
            expect(binding('numbers.$limitTo(limit) | json')).toEqual('[1,2,3]');
          });
 
@@ -5661,7 +5691,7 @@ angularFormatter.number = formatter(toString, function(obj){
       it('should format lists', function(){
         expect(binding('value')).toEqual('value=["chair","table"]');
         this.addFutureAction('change to XYZ', function($window, $document, done){
-          $document.elements('.doc-example :input:last').val(',,a,b,').trigger('change');
+          $document.elements('.doc-example-live :input:last').val(',,a,b,').trigger('change');
           done();
         });
         expect(binding('value')).toEqual('value=["a","b"]');
@@ -5703,7 +5733,7 @@ angularFormatter.list = formatter(
         it('should format trim', function(){
           expect(binding('value')).toEqual('value="book"');
           this.addFutureAction('change to XYZ', function($window, $document, done){
-            $document.elements('.doc-example :input:last').val('  text  ').trigger('change');
+            $document.elements('.doc-example-live :input:last').val('  text  ').trigger('change');
             done();
           });
           expect(binding('value')).toEqual('value="text"');
@@ -5802,7 +5832,7 @@ extend(angularValidator, {
       </doc:source>
       <doc:scenario>
         it('should invalidate non ssn', function(){
-         var textBox = element('.doc-example :input');
+         var textBox = element('.doc-example-live :input');
          expect(textBox.attr('className')).not().toMatch(/ng-validation-error/);
          expect(textBox.val()).toEqual('123-45-6789');
          input('ssn').enter('123-45-67890');
@@ -5843,15 +5873,15 @@ extend(angularValidator, {
       </doc:source>
       <doc:scenario>
         it('should invalidate number', function(){
-         var n1 = element('.doc-example :input[name=n1]');
+         var n1 = element('.doc-example-live :input[name=n1]');
          expect(n1.attr('className')).not().toMatch(/ng-validation-error/);
          input('n1').enter('1.x');
          expect(n1.attr('className')).toMatch(/ng-validation-error/);
-         var n2 = element('.doc-example :input[name=n2]');
+         var n2 = element('.doc-example-live :input[name=n2]');
          expect(n2.attr('className')).not().toMatch(/ng-validation-error/);
          input('n2').enter('9');
          expect(n2.attr('className')).toMatch(/ng-validation-error/);
-         var n3 = element('.doc-example :input[name=n3]');
+         var n3 = element('.doc-example-live :input[name=n3]');
          expect(n3.attr('className')).not().toMatch(/ng-validation-error/);
          input('n3').enter('201');
          expect(n3.attr('className')).toMatch(/ng-validation-error/);
@@ -5897,15 +5927,15 @@ extend(angularValidator, {
       </doc:source>
       <doc:scenario>
         it('should invalidate integer', function(){
-         var n1 = element('.doc-example :input[name=n1]');
+         var n1 = element('.doc-example-live :input[name=n1]');
          expect(n1.attr('className')).not().toMatch(/ng-validation-error/);
          input('n1').enter('1.1');
          expect(n1.attr('className')).toMatch(/ng-validation-error/);
-         var n2 = element('.doc-example :input[name=n2]');
+         var n2 = element('.doc-example-live :input[name=n2]');
          expect(n2.attr('className')).not().toMatch(/ng-validation-error/);
          input('n2').enter('10.1');
          expect(n2.attr('className')).toMatch(/ng-validation-error/);
-         var n3 = element('.doc-example :input[name=n3]');
+         var n3 = element('.doc-example-live :input[name=n3]');
          expect(n3.attr('className')).not().toMatch(/ng-validation-error/);
          input('n3').enter('100.1');
          expect(n3.attr('className')).toMatch(/ng-validation-error/);
@@ -5941,7 +5971,7 @@ extend(angularValidator, {
       </doc:source>
       <doc:scenario>
         it('should invalidate date', function(){
-         var n1 = element('.doc-example :input');
+         var n1 = element('.doc-example-live :input');
          expect(n1.attr('className')).not().toMatch(/ng-validation-error/);
          input('text').enter('123/123/123');
          expect(n1.attr('className')).toMatch(/ng-validation-error/);
@@ -5979,7 +6009,7 @@ extend(angularValidator, {
       </doc:source>
       <doc:scenario>
         it('should invalidate email', function(){
-         var n1 = element('.doc-example :input');
+         var n1 = element('.doc-example-live :input');
          expect(n1.attr('className')).not().toMatch(/ng-validation-error/);
          input('text').enter('a@b.c');
          expect(n1.attr('className')).toMatch(/ng-validation-error/);
@@ -6013,7 +6043,7 @@ extend(angularValidator, {
       </doc:source>
       <doc:scenario>
         it('should invalidate phone', function(){
-         var n1 = element('.doc-example :input');
+         var n1 = element('.doc-example-live :input');
          expect(n1.attr('className')).not().toMatch(/ng-validation-error/);
          input('text').enter('+12345678');
          expect(n1.attr('className')).toMatch(/ng-validation-error/);
@@ -6050,7 +6080,7 @@ extend(angularValidator, {
       </doc:source>
       <doc:scenario>
         it('should invalidate url', function(){
-         var n1 = element('.doc-example :input');
+         var n1 = element('.doc-example-live :input');
          expect(n1.attr('className')).not().toMatch(/ng-validation-error/);
          input('text').enter('abc://server/path');
          expect(n1.attr('className')).toMatch(/ng-validation-error/);
@@ -6085,7 +6115,7 @@ extend(angularValidator, {
       </doc:source>
       <doc:scenario>
         it('should invalidate json', function(){
-         var n1 = element('.doc-example :input');
+         var n1 = element('.doc-example-live :input');
          expect(n1.attr('className')).not().toMatch(/ng-validation-error/);
          input('json').enter('{name}');
          expect(n1.attr('className')).toMatch(/ng-validation-error/);
@@ -6157,7 +6187,7 @@ extend(angularValidator, {
       </doc:source>
       <doc:scenario>
         it('should change color in delayed way', function(){
-         var textBox = element('.doc-example :input');
+         var textBox = element('.doc-example-live :input');
          expect(textBox.attr('className')).not().toMatch(/ng-input-indicator-wait/);
          expect(textBox.attr('className')).not().toMatch(/ng-validation-error/);
          input('text').enter('X');
@@ -6303,7 +6333,8 @@ angularServiceInject('$cookies', function($browser) {
   var rootScope = this,
       cookies = {},
       lastCookies = {},
-      lastBrowserCookies;
+      lastBrowserCookies,
+      runEval = false;
 
   //creates a poller fn that copies all cookies from the $browser to service & inits the service
   $browser.addPollFn(function() {
@@ -6312,9 +6343,11 @@ angularServiceInject('$cookies', function($browser) {
       lastBrowserCookies = currentCookies;
       copy(currentCookies, lastCookies);
       copy(currentCookies, cookies);
-      rootScope.$eval();
+      if (runEval) rootScope.$eval();
     }
   })();
+
+  runEval = true;
 
   //at the end of each eval, push cookies
   //TODO: this should happen before the "delayed" watches fire, because if some cookies are not
@@ -6390,7 +6423,7 @@ angularServiceInject('$cookies', function($browser) {
  * In tests you can use `$browser.defer.flush()` to flush the queue of deferred functions.
  *
  * @param {function()} fn A function, who's execution should be deferred.
- * @param {int=} [delay=0] of milliseconds to defer the function execution.
+ * @param {number=} [delay=0] of milliseconds to defer the function execution.
  */
 angularServiceInject('$defer', function($browser, $exceptionHandler, $updateView) {
   return function(fn, delay) {
@@ -6495,7 +6528,7 @@ angularServiceInject("$hover", function(browser, document) {
       tooltip = _null;
     }
   });
-}, ['$browser', '$document']);
+}, ['$browser', '$document'], true);
 /**
  * @workInProgress
  * @ngdoc service
@@ -7722,8 +7755,11 @@ angularServiceInject('$xhr', function($browser, $error, $log){
     }
     $browser.xhr(method, url, post, function(code, response){
       try {
-        if (isString(response) && /^\s*[\[\{]/.exec(response) && /[\}\]]\s*$/.exec(response)) {
-          response = fromJson(response, true);
+        if (isString(response)) {
+          if (response.match(/^\)\]\}',\n/)) response=response.substr(6);
+          if (/^\s*[\[\{]/.exec(response) && /[\}\]]\s*$/.exec(response)) {
+            response = fromJson(response, true);
+          }
         }
         if (code == 200) {
           callback(code, response);
@@ -9298,15 +9334,15 @@ angularWidget('option', function(){
       </doc:source>
       <doc:scenario>
         it('should load date filter', function(){
-         expect(element('.doc-example ng\\:include').text()).toMatch(/angular\.filter\.date/);
+         expect(element('.doc-example-live ng\\:include').text()).toMatch(/angular\.filter\.date/);
         });
         it('should change to hmtl filter', function(){
          select('url').option('angular.filter.html.html');
-         expect(element('.doc-example ng\\:include').text()).toMatch(/angular\.filter\.html/);
+         expect(element('.doc-example-live ng\\:include').text()).toMatch(/angular\.filter\.html/);
         });
         it('should change to blank', function(){
-         select('url').option('(blank)');
-         expect(element('.doc-example ng\\:include').text()).toEqual('');
+         select('url').option('');
+         expect(element('.doc-example-live ng\\:include').text()).toEqual('');
         });
       </doc:scenario>
     </doc:example>
@@ -9402,15 +9438,15 @@ angularWidget('ng:include', function(element){
       </doc:source>
       <doc:scenario>
         it('should start in settings', function(){
-         expect(element('.doc-example ng\\:switch').text()).toEqual('Settings Div');
+         expect(element('.doc-example-live ng\\:switch').text()).toEqual('Settings Div');
         });
         it('should change to home', function(){
          select('switch').option('home');
-         expect(element('.doc-example ng\\:switch').text()).toEqual('Home Span');
+         expect(element('.doc-example-live ng\\:switch').text()).toEqual('Home Span');
         });
         it('should select deafault', function(){
          select('switch').option('other');
-         expect(element('.doc-example ng\\:switch').text()).toEqual('default');
+         expect(element('.doc-example-live ng\\:switch').text()).toEqual('default');
         });
       </doc:scenario>
     </doc:example>

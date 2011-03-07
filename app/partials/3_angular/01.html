@@ -1,6 +1,12 @@
 <div class="center">
   <div class="slide">
     <pre class="code">
+      <div ng:controller="Greeter">
+        <input name="name">
+        <button ng:click="greet()">greet</button>
+        <p>{{greeting}}</p>
+      </div>
+
       ===script===
       function Greeter($xhr){
         var self = this;
@@ -17,11 +23,6 @@
         }
       }
       ===/script===
-      <div ng:controller="Greeter">
-        <input name="name">
-        <button ng:click="greet()">greet</button>
-        <p>{{greeting}}</p>
-      </div>
     </pre>
   </div>
 </div>

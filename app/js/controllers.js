@@ -53,5 +53,16 @@ function PresentationCntrl($route, $window) {
   slide('4_testing/02', 'Separation of Concerns');
   slide('4_testing/03', 'Dependency Injection');
   slide('4_testing/04', 'Test Herness');
+
+  slide('5_angular/00', 'Implementation');
+  slide('5_angular/01', 'Abstraction: $route');
+  slide('5_angular/02', 'Abstraction: $resource');
+  slide('5_angular/03', 'Abstraction: Input Validation');
+  slide('5_angular/04', 'Abstraction: Filters and Formatters');
+  slide('5_angular/05', 'Abstraction: Your DSL');
+  slide('5_angular/06', 'HTML is here to stay');
+  slide('5_angular/07', 'Angular Summary');
+  slide('5_angular/08', 'The End');
+
 }
 
