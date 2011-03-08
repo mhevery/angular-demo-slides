@@ -6,31 +6,39 @@ body {
   font-family: 'Coming Soon', arial, serif;
 }
 
-body > h1 {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background-color: #F2C200;
-  margin: 0;
-  padding: .5em 1em;
-  border-bottom: 1px solid black;
+body > h1 > tt {
+  font-family: 'Coming Soon', arial, serif;
 }
 
-em {
-  text-decoration: underline;
+.header {
+  margin:0;
+  background-color: #F2C200;
+  border-bottom: 1px solid black;
+  padding: .25em .5em;
 }
+
+.header h1 {
+  margin: 0;
+}
+
+.header .navigation {
+  float: right;
+  margin: 0;
+}
+
+.header .slideNo {
+  float: right;
+}
+
 
 .ng-view {
   border-top: 1px solid gray;
   display: block;
   padding: .25em;
-  padding-top: 5em;
-  padding-bottom: 2em;
 }
 
 .ng-view h1 {
-  font-size: 5em;
+  font-size: 4em;
 }
 
 .ng-view h2 {
@@ -84,10 +92,6 @@ fieldset > div {
   font-size: 20px;
 }
 
-.navigation {
-  float: right;
-}
-
 .floating-slide {
   float: right;
 }
@@ -118,20 +122,6 @@ div.syntaxhighlighter > table {
 .clip {
   max-height: 15em;
   overflow: scroll;
-}
-
-.footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: #F2C200;
-  font-size: .7em;
-  margin-top: 2em;
-  padding: .5em;
-  text-align: center;
-  border-top: 1px solid black;
-  clear: both;
 }
 
 .slide {
