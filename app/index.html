@@ -6,15 +6,17 @@
   <link href='http://fonts.googleapis.com/css?family=Coming+Soon' rel='stylesheet' type='text/css'>
 </head>
 <body style="display:none" ng:show="true">
-  <h1 class="header">&lt;angular/&gt;: {{view.title}}</h1>
+  <div class="header">
+    <h1 class="navigation">
+      [ <a x:key="left-arrow" href="#/{{prev}}">&lt;&lt;</a>
+      | <a x:key="right-arrow" href="#/{{next}}">&gt;&gt;</a> ]
+    </h1>
+    <h1>&lt;angular/&gt;: {{view.title}}</h1>
+  </div>
   <div class="slideSource">
     Slide <a href="https://github.com/mhevery/angular-demo-slides">source</a>.
   </div>
   <span class="slideNo">{{slideNo}} / {{slideCount}}</span>
-  <h1 class="navigation">
-    [ <a x:key="left-arrow" href="#/{{prev}}">&lt;&lt;</a>
-    | <a x:key="right-arrow" href="#/{{next}}">&gt;&gt;</a> ]
-  </h1>
 
   <ng:view></ng:view>
 

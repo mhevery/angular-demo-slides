@@ -16,19 +16,14 @@ body > h1 > tt {
   border-bottom: 1px solid black;
 }
 
-body > h1 {
+.header h1 {
   margin: 0;
   padding: .25em .5em;
 }
 
-.header div {
-  font-size: .6em;
-}
-
 .navigation {
-  position: fixed;
-  top: 0;
-  right: 0;
+  float: right;
+  margin: 0;
 }
 
 .slideNo {
