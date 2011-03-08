@@ -42,11 +42,11 @@ function PresentationCntrl($route, $window) {
   slide('2_form/03',    'Hello form');
   slide('2_form/04',    'jQuery???');
   slide('2_form/05',    'jQuery <3');
-  slide('2_form/06',    'web-app >>> DOM manipulation');
+  slide('2_form/06',    'web-apps > DOM manipulation');
 
   slide('3_angular/00', 'increase the abstraction');
   slide('3_angular/01', 'XHR');
-  slide('3_angular/02', 'Controlers and DI');
+  slide('3_angular/02', 'Controllers and DI');
 
   slide('4_testing/00', 'Testing Behavior');
   slide('4_testing/01', 'How Testable?');

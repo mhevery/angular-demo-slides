@@ -3,6 +3,7 @@
 body {
   margin: 0;
   padding: 0;
+  font-family: 'Coming Soon', arial, serif;
 }
 
 body > h1 {
@@ -14,6 +15,10 @@ body > h1 {
   margin: 0;
   padding: .5em 1em;
   border-bottom: 1px solid black;
+}
+
+em {
+  text-decoration: underline;
 }
 
 .ng-view {
@@ -42,7 +47,6 @@ body > h1 {
 }
 
 li {
-  font-family: helvetica, arial, sans-serif;
   font-size: 30px;
   padding-top: .5em;
 }
@@ -66,10 +70,12 @@ ul ul {
 }
 
 fieldset {
+  font-family: times, serif;
   text-align: left;
 }
 
 fieldset > legend {
+  font-family: 'Coming Soon', arial, serif;
   font-weight: bold;
   font-size: 20px;
 }
