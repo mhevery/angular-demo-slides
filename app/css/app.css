@@ -14,20 +14,36 @@ body > h1 > tt {
   margin:0;
   background-color: #F2C200;
   border-bottom: 1px solid black;
+}
+
+body > h1 {
+  margin: 0;
   padding: .25em .5em;
 }
 
-.header h1 {
-  margin: 0;
+.header div {
+  font-size: .6em;
 }
 
-.header .navigation {
-  float: right;
-  margin: 0;
+.navigation {
+  position: fixed;
+  top: 0;
+  right: 0;
 }
 
-.header .slideNo {
+.slideNo {
+  padding: .25em .5em;
+  position: fixed;
   float: right;
+  bottom: 0;
+  right: 0;
+}
+
+.slideSource {
+  padding: .25em .5em;
+  position: fixed;
+  bottom: 0;
+  left: 0;
 }
 
 

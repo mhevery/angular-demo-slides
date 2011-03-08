@@ -1,22 +1,20 @@
 <!doctype html>
-<html xmlns:ng="http://angularjs.org/" xmlns:y="http://presentation.angularjs.org/" ng:controller="PresentationCntrl">
+<html xmlns:ng="http://angularjs.org/" xmlns:x="http://presentation.angularjs.org/" ng:controller="PresentationCntrl">
 <head>
   <title>&lt;angular/&gt;: {{view.title}}</title>
   <link rel="stylesheet" href="css/app.css"/>
   <link href='http://fonts.googleapis.com/css?family=Coming+Soon' rel='stylesheet' type='text/css'>
 </head>
 <body style="display:none" ng:show="true">
-  <div class="header">
-    <h2 class="navigation">
-      [ <a x:key="left-arrow" href="#/{{prev}}">&lt;&lt;</a>
-      | <a x:key="right-arrow" href="#/{{next}}">&gt;&gt;</a> ]
-    </h2>
-    <h1>&lt;angular/&gt;: {{view.title}}</h1>
-    <span class="slideNo">{{slideNo}} / {{slideCount}}</span>
-    <div>
-      Slide <a href="https://github.com/mhevery/angular-demo-slides">source</a>.
-    </div>
+  <h1 class="header">&lt;angular/&gt;: {{view.title}}</h1>
+  <div class="slideSource">
+    Slide <a href="https://github.com/mhevery/angular-demo-slides">source</a>.
   </div>
+  <span class="slideNo">{{slideNo}} / {{slideCount}}</span>
+  <h1 class="navigation">
+    [ <a x:key="left-arrow" href="#/{{prev}}">&lt;&lt;</a>
+    | <a x:key="right-arrow" href="#/{{next}}">&gt;&gt;</a> ]
+  </h1>
 
   <ng:view></ng:view>
 
