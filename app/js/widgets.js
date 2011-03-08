@@ -67,3 +67,19 @@ angular.widget('pre', function(template){
     SyntaxHighlighter.highlight();
   }
 });
+
+angular.directive('x:key', function(key, element){
+  var keyCodeMap = {
+      'left-arrow': 37,
+      'right-arrow': 39
+  };
+  var keyCode = keyCodeMap[key];
+  return function($location, $updateView, element){
+    $(document).keydown(function(event){
+      if (event.keyCode == keyCode) {
+        $location.hashPath = element.attr('href').substring(1);
+        $updateView();
+      }
+    });
+  };
+});
