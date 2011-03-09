@@ -31,10 +31,10 @@ function PresentationCntrl($route, $window) {
   slide('0_intro/05',   'Lack of Abstraction');
 
   slide('1_html/00',    'But what about ...');
-  slide('1_html/01',    'Hello Document!');
-  slide('1_html/02',    'Hello JavaScript!');
-  slide('1_html/03',    'Hello jQuery!');
-  slide('1_html/04',    'Hello <angular/>!');
+  slide('1_html/01',    'Hello Document');
+  slide('1_html/02',    'Hello JavaScript');
+  slide('1_html/03',    'Hello jQuery');
+  slide('1_html/04',    'Hello <angular/>');
   slide('1_html/05',    'Hello <angular/> MVC');
 
   slide('2_form/00',    'Hello form');
@@ -53,7 +53,7 @@ function PresentationCntrl($route, $window) {
   slide('4_testing/01', 'How Testable?');
   slide('4_testing/02', 'Separation of Concerns');
   slide('4_testing/03', 'Dependency Injection');
-  slide('4_testing/04', 'Test Herness');
+  slide('4_testing/04', 'Test Harness');
 
   slide('5_angular/00', 'Implementation');
   slide('5_angular/01', 'Abstraction: $route');
