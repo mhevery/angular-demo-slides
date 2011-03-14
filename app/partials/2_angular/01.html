@@ -1,0 +1,42 @@
+<div class="center">
+<div class="slide">
+<pre class="code-only">
+describe('PasswordController', function(){
+  var root, controller;
+
+  beforeEach(function(){
+    root = angular.scope();
+    controller = root.$new(PasswordController);
+  });
+
+  it('should grade password', function(){
+    controller.password = 'abc';
+    controller.$eval();
+    expect(controller.strength).toEqual('weak');
+
+    controller.password = 'abcdefg';
+    controller.$eval();
+    expect(controller.strength).toEqual('medium');
+
+    controller.password = 'abcdefgijk';
+    controller.$eval();
+    expect(controller.strength).toEqual('strong');
+  });
+
+  it('should fetch password from server', function(){
+    var $browser = root.$service('$browser');
+    $browser.xhr
+      .expect('JSON', SERVICE_URL)
+      .respond({password: 'abc123'});
+    controller.generate();
+
+    expect(controller.password).toEqual('');
+
+    $browser.xhr.flush();
+
+    expect(controller.password).toEqual('abc123');
+  });
+});
+</pre>
+</div>
+</div>

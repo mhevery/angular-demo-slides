@@ -30,7 +30,11 @@ function PresentationCntrl($route, $window) {
   slide('0_faq/03',       'Solution');
   slide('0_faq/04',       'Why Hard');
   slide('1_jquery/00',    'jQuery');
+  slide('1_jquery/01',    'refactor');
+  slide('1_jquery/02',    'unit test');
   slide('2_angular/00',   'angular'); $route.when('/password', {redirectTo:'/' + self.slideCount});
+  slide('2_angular/01',   'unit test');
+  slide('2_angular/02',   'end-to-end test');
   slide('3_inventory/00', 'Questions');
   slide('3_inventory/01', 'Separation of Concerns');
   slide('3_inventory/02', 'Mocks');
