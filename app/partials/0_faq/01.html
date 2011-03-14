@@ -1,0 +1,20 @@
+<div class="center">
+  <h1>JavaScript is dynamic</h1>
+  <h2>no type checking<br/>
+      need to execute to see error</h2>
+  <div class="slide">
+    <pre class="code">
+      <p ng:controller="Error">
+        <button ng:click="greet()">click me</button>
+      </p>
+
+      ===script===
+      function Error(){
+        this.greet = function(){
+          this.alert('Hello World!');
+        }
+      }
+      ===/script===
+    </pre>
+  </div>
+</div>

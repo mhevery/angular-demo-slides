@@ -1,0 +1,50 @@
+<div class="center">
+  <div class="slide">
+    <pre class="code">
+      <div ng:controller="PasswordController">
+        Password:
+        <input type="password" name="password"/>
+        <input type="checkbox" name="showPwd">
+        <tt ng:show="showPwd">{{password}}</tt>
+        <br/>
+        Password strength:
+        <span ng:class="strength">{{strength}}</span>
+        <button ng:click="generate()">Generate</button>
+      </div>
+
+      ===script===
+      var SERVICE_URL = 'http://angularjs.org/' +
+       'generatePassword.php?callback=JSON_CALLBACK';
+
+      function PasswordController($xhr){
+        this.password = '';
+        this.strength = null;
+        this.showPwd = true;
+
+        this.$watch('password', function(){
+          if (this.password.length > 8) {
+            this.strength = 'strong';
+          } else if (this.password.length > 3) {
+            this.strength = 'medium';
+          } else {
+            this.strength = 'weak';
+          }
+        });
+
+        this.generate = function(){
+          var self = this;
+          $xhr('JSON', SERVICE_URL, function(code, response){
+            self.password = response.password;
+          });
+        };
+      }
+      ===/script===
+
+      <style>
+       .strong { background-color: lightgreen;}
+       .medium { background-color: yellow;}
+       .weak { background-color: red; color: white;}
+      </style>
+    </pre>
+  </div>
+</div>

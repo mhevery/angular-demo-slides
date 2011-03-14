@@ -141,3 +141,13 @@ div.syntaxhighlighter > table {
   font-size-adjust: 3em;
   text-align: left;
 }
+
+td h2 {
+  text-align: left;
+  padding-left: 1em;
+}
+
+td h1,
+td h2 {
+  margin: 0;
+}

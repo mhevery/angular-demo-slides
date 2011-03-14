@@ -1,27 +1,62 @@
-function MyCntrl($resource){
-  var Book = $resource('books.json');
+var SERVICE_URL = 'http://angularjs.org/' +
+ 'generatePassword.php?callback=JSON_CALLBACK';
 
-  this.fetch = function(){
-    this.books = Book.query();
+function PasswordController($xhr){
+  this.password = '';
+  this.strength = null;
+  this.showPwd = true;
+
+  this.$watch('password', function(){
+    if (this.password.length > 8) {
+      this.strength = 'strong';
+    } else if (this.password.length > 3) {
+      this.strength = 'medium';
+    } else {
+      this.strength = 'weak';
+    }
+  });
+
+  this.generate = function(){
+    var self = this;
+    $xhr('JSON', SERVICE_URL, function(code, response){
+      self.password = response.password;
+    });
   };
 }
 
-describe('MyCntrl', function(){
-  it('should fetch books', function(){
-    var rootScope = angular.scope();
-    var myCntrl = rootScope.$new(MyCntrl);
+describe('PasswordController', function(){
+  var root, controller;
 
-    expect(myCntrl.books).toBeUndefined();
+  beforeEach(function(){
+    root = angular.scope();
+    controller = root.$new(PasswordController);
+  });
 
-    // train the browser expectations
-    rootScope.$testing.$browser.xhr.expectGET('books.json').respond([{name:'A'}, {name:'B'}]);
+  it('should grade password', function(){
+    controller.password = 'abc';
+    controller.$eval();
+    expect(controller.strength).toEqual('weak');
 
-    myCntrl.fetch();
-    expect(myCntrl.books).toEqual([]);
+    controller.password = 'abcdefg';
+    controller.$eval();
+    expect(controller.strength).toEqual('medium');
 
-    // flush the responses
-    rootScope.$testing.$browser.xhr.flush();
+    controller.password = 'abcdefgijk';
+    controller.$eval();
+    expect(controller.strength).toEqual('strong');
+  });
 
-    expect(myCntrl.books).toEqualData([{name:'A'}, {name:'B'}]);
+  it('should fetch password from server', function(){
+    var $browser = root.$service('$browser');
+    $browser.xhr
+      .expect('JSON', SERVICE_URL)
+      .respond({password: 'abc123'});
+    controller.generate();
+
+    expect(controller.password).toEqual('');
+
+    $browser.xhr.flush();
+
+    expect(controller.password).toEqual('abc123');
   });
 });

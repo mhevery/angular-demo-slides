@@ -23,7 +23,22 @@ function PresentationCntrl($route, $window) {
         {seq:self.slideCount, template:'partials/' + partial + '.html', title:title});
   }
 
-  slide('0_intro/00',   '');
-
+  slide('title',          '');
+  slide('0_faq/00',       'FAQ');
+  slide('0_faq/01',       'Dynamic');
+  slide('0_faq/02',       'Error-prone');
+  slide('0_faq/03',       'Solution');
+  slide('0_faq/04',       'Why Hard');
+  slide('1_jquery/00',    'jQuery');
+  slide('2_angular/00',   'angular'); $route.when('/password', {redirectTo:'/' + self.slideCount});
+  slide('3_inventory/00', 'Questions');
+  slide('3_inventory/01', 'Separation of Concerns');
+  slide('3_inventory/02', 'Mocks');
+  slide('3_inventory/03', 'Dependency Injection');
+  slide('3_inventory/04', 'Global State');
+  slide('3_inventory/05', 'Test Harness');
+  slide('3_inventory/06', 'Test Harness: unit');
+  slide('3_inventory/07', 'Test Harness: end-to-end');
+  slide('end',            '');
 }
 

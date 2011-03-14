@@ -83,3 +83,21 @@ angular.directive('x:key', function(key, element){
     });
   };
 });
+
+angular.directive('x:scale', function(direction, element){
+  var text = element.text();
+  var before = ['<span style="font-size: 2em;">'];
+  var after = ['</span>'];
+  for ( var i = 0; i < text.length; i++) {
+    if (direction == 'down') {
+      before.push(text.charAt(i));
+      before.push('<span style="font-size: 0.8em;">');
+      after.push('</span>');
+    } else if (direction == 'up') {
+      before.push('<span style="font-size: 0.8em;">');
+      after.push(text.charAt(i));
+      after.push('</span>');
+    }
+  }
+  element.replaceWith(before.join('') + after.join(''));
+});

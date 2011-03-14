@@ -1,41 +1,50 @@
-describe('my app', function() {
+describe('password generator', function() {
 
   beforeEach(function() {
-    browser().navigateTo('../../app/index.html');
+    browser().navigateTo('../../app/index.html#/password');
   });
 
 
-  it('should automatically redirect to /view1 when location hash/fragment is empty', function() {
-    expect(browser().location().hash()).toBe("/view1");
+  it('should show/hide password', function() {
+    wait();
+    input('password').enter('abc');
+    expect(binding('password')).toEqual('abc');
+    expect(element('tt').css('display')).toEqual('inline');
+
+    wait();
+    input('showPwd').check();
+    expect(element('tt').css('display')).toEqual('none');
+
+    wait();
   });
 
+  it('should grade password', function(){
+    wait();
+    input('password').enter('abc');
+    expect(binding('strength')).toEqual('weak');
 
-  describe('view1', function() {
+    wait();
+    input('password').enter('abcdefg');
+    expect(binding('strength')).toEqual('medium');
 
-    beforeEach(function() {
-      browser().navigateTo('#/view1');
-    });
+    wait();
+    input('password').enter('abcdefgijkl');
+    expect(binding('strength')).toEqual('strong');
 
-
-    it('should render view1 when user navigates to /view1', function() {
-      expect(element('ng\\:view p:first').text()).
-        toMatch(/partial for view 1/)
-    });
-
+    wait();
   });
 
+  it('should grade password', function(){
+    wait();
 
-  describe('view2', function() {
+    input('password').enter('...');
+    expect(binding('password')).toEqual('...');
 
-    beforeEach(function() {
-      browser().navigateTo('#/view2');
-    });
+    wait();
+    element(':button').click();
+    expect(binding('password')).not().toEqual('...');
+    expect(binding('password')).not().toEqual('');
 
-
-    it('should render view1 when user navigates to /view2', function() {
-      expect(element('ng\\:view p:first').text()).
-        toMatch(/partial for view 2/)
-    });
-
+    wait();
   });
 });
