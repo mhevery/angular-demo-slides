@@ -1,0 +1,21 @@
+<div class="center">
+  <div class="slide">
+    <pre class="code">
+      <my:time>MM/dd/yyyy @ h:mm:ss a</my:time>
+
+      ===script===
+      angular.widget('my:time', function(element){
+        element.css('display', 'block');
+        var format = element.text();
+        var dateFilter = angular.filter('date');
+        return function($defer, element){
+          (function tick(){
+            element.text(dateFilter(new Date(), format));
+            $defer(tick, 1000);
+          })();
+        };
+      });
+      ===/script===
+    </pre>
+  </div>
+</div>
