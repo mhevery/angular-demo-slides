@@ -14,7 +14,7 @@
 
       ===script===
       var SERVICE_URL = 'http://angularjs.org/' +
-       'generatePassword.php?callback=JSON_CALLBACK';
+       'generatePassword.php?callback=?';
       $(function(){
         // get references to DOM elements
         var input = $(':input[type=password]');
@@ -28,8 +28,9 @@
         button.bind('click', function(){
           var r = $.ajax({
             url:SERVICE_URL,
-            complete:function(response){
-              input.val(response.response);
+            dataType: 'jsonp',
+            success: function(response){
+              input.val(response.password);
               change();
             }
           });

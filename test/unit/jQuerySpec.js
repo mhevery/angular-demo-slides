@@ -1,57 +1,61 @@
-      var SERVICE_URL = 'http://angularjs.org/' +
-       'generatePassword.php?callback=JSON_CALLBACK';
-      function passwordMain(){
-        // get references to DOM elements
-        var input = $(':input[type=password]');
-        var show = $(':checkbox');
-        var strength = $('.strength');
-        var password = $('.password');
-        var button = $(':button');
-        var grade;
+var SERVICE_URL = 'http://angularjs.org/' +
+ 'generatePassword.php?callback=JSON_CALLBACK';
 
-        // Register behavior
-        button.bind('click', function(){
-          var r = $.ajax({
-            url:SERVICE_URL,
-            complete:function(response){
-              input.val(response.password);
-              change();
-            }
-          });
-        });
+// extract method
+function passwordMain(){
+  // get references to DOM elements
+  var input = $(':input[type=password]');
+  var show = $(':checkbox');
+  var strength = $('.strength');
+  var password = $('.password');
+  var button = $(':button');
+  var grade;
 
-        input.bind('keydown', function(){
-          setTimeout(change, 0);
-        });
-
-        show.bind('click', function(){
-          if (show.is(':checked')) {
-            password.show();
-          } else {
-            password.hide();
-          }
-        });
-
-        function change(){
-          strength.removeClass(grade);
-          var pwd = input.val();
-          password.text(pwd);
-          if (pwd.length > 8) {
-            grade = 'strong';
-          } else if (pwd.length > 3) {
-            grade = 'medium';
-          } else {
-            grade = 'weak';
-          }
-          strength
-           .addClass(grade)
-           .text(grade);
-        }
-
-        //reset initial state
+  // Register behavior
+  button.bind('click', function(){
+    var r = $.ajax({
+      url:SERVICE_URL,
+      dataType: 'jsonp',
+      success: function(response){
+        input.val(response.password);
         change();
       }
+    });
+  });
 
+  input.bind('keydown', function(){
+    setTimeout(change, 0);
+  });
+
+  show.bind('click', function(){
+    if (show.is(':checked')) {
+      password.show();
+    } else {
+      password.hide();
+    }
+  });
+
+  function change(){
+    strength.removeClass(grade);
+    var pwd = input.val();
+    password.text(pwd);
+    if (pwd.length > 8) {
+      grade = 'strong';
+    } else if (pwd.length > 3) {
+      grade = 'medium';
+    } else {
+      grade = 'weak';
+    }
+    strength
+     .addClass(grade)
+     .text(grade);
+  }
+
+  //reset initial state
+  change();
+}
+
+/****************************/
 describe('jQuery password', function(){
   var input, show, strength, password, button;
 
@@ -122,7 +126,7 @@ describe('jQuery password', function(){
     expect($.ajax.mostRecentCall.args[0].url).toEqual(SERVICE_URL);
     expect(password.text()).toEqual('');
 
-    $.ajax.mostRecentCall.args[0].complete({password:'abc123'});
+    $.ajax.mostRecentCall.args[0].success({password:'abc123'});
     expect(password.text()).toEqual('abc123');
 
     // restore

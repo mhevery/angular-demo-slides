@@ -19,7 +19,8 @@ function passwordMain(){
   button.bind('click', function(){
     var r = $.ajax({
       url:SERVICE_URL,
-      complete:function(response){
+      dataType: 'jsonp',
+      success: function(response){
         input.val(response.password);
         change();
       }
