@@ -30,12 +30,12 @@ angular.widget('pre', function(template){
     // so we have to code it as p:script and the rename it.
     var example = angular.element('<fieldset>')
       .addClass('example')
-      .append('<legend>Example</legend>')
+      .append('<legend>Example Output</legend>')
       .append(angular.element('<div>').html(html));
 
     var code = angular.element('<fieldset>')
       .addClass('code')
-      .append('<legend>Source</legend>')
+      .append('<legend>Example Source</legend>')
       .append(angular.element('<pre>')
           .addClass('brush: js; html-script: true; toolbar: false;')
           .text(html));
