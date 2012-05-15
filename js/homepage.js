@@ -1,51 +1,5 @@
 angular.module('homepage', [])
 
-  .config(function($provide) {
-    var pulseElements = $(),
-        pulseColor = {r:0xE6, g:0xF0, b: 0xFF},
-        baseColor = {r:0x99, g:0xc2, b: 0xFF},
-        pulseDuration = 1000,
-        pulseDelay = 15000;
-
-    function hex(number) {
-      return ('0' + Number(number).toString(16)).slice(-2);
-    }
-
-    jQuery.fn.pulse = function () {
-      pulseElements = pulseElements.add(this);
-    };
-    var lastPulse;
-
-    function tick() {
-      var duration = new Date().getTime() - lastPulse,
-          index = duration * Math.PI / pulseDuration ,
-          level = Math.pow(Math.sin(index), 10),
-          color = {
-            r: Math.round(pulseColor.r * level + baseColor.r * (1 - level)),
-            g: Math.round(pulseColor.g * level + baseColor.g * (1 - level)),
-            b: Math.round(pulseColor.b * level + baseColor.b * (1 - level))
-          },
-          style = '#' + hex(color.r) + hex(color.g) + hex(color.b);
-
-      pulseElements.css('backgroundColor', style);
-      if (duration > pulseDuration) {
-        setTimeout(function() {
-          lastPulse = new Date().getTime();
-          tick();
-        }, pulseDelay);
-      } else {
-        setTimeout(tick, 50);
-      }
-    }
-
-    $provide.value('startPulse', function() {
-       setTimeout(function() {
-         lastPulse = new Date().getTime();
-         tick();
-       }, 2000);
-    });
-  })
-
   .value('indent', function(text, spaces) {
     if (!text) return text;
     var lines = text.split(/\r?\n/);
@@ -180,25 +134,6 @@ angular.module('homepage', [])
           // hack around incorrect tokenization
           content = content.replace('doneTrue', '.done-true');
 
-          var popovers = {},
-              counter = 0;
-
-          angular.forEach(annotation[filename], function(text, key) {
-            var regexp = new RegExp('(\\W|^)(' + key.replace(/([\W\-])/g, '\\$1') + ')(\\W|$)');
-
-            content = content.replace(regexp, function(_, before, token, after) {
-              var token = "__" + (counter++) + "__";
-              popovers[token] =
-                '<code class="nocode" rel="popover" title="' + escape('<code>' + key + '</code>') +
-                '" data-content="' + escape(text) + '">' + escape(key) + '</code>';
-              return before + token + after;
-            });
-          });
-
-          angular.forEach(popovers, function(text, token) {
-            content = content.replace(token, text);
-          });
-
           panes.push(
             '<div class="tab-pane' + (!index ? ' active' : '') + '" id="' + id(filename) + '">' +
               '<pre class="prettyprint linenums nocode">' + content +'</pre>' +
@@ -279,59 +214,3 @@ angular.module('homepage', [])
       }
     }
   })
-
-  .directive('hint', function() {
-    return {
-      template: '<em>Hint:</em> hover over ' +
-          '<code class="nocode" rel="popover" title="Hover" ' +
-          'data-content="Place your mouse over highlited areas in the code for explanations.">me</code>.'
-    }
-  })
-
-  .run(function($rootScope, startPulse){
-    $rootScope.version = angular.version;
-    $rootScope.$evalAsync(function(){
-      var videoURL;
-
-      $('.video-img').
-        bind('click', function() {
-          videoURL = $(this).data('video');
-        });
-
-      $('#videoModal').
-        modal({show:false}).
-        on('shown', function(event, a, b, c) {
-          var iframe = $(this).find('.modal-body').append('<iframe>').find('iframe');
-
-          iframe.attr({
-            width: 1280, height: 720, allowfullscreen: true,
-            src: videoURL
-          });
-
-          // HACK: The only way I know of tricking YouTube to play HD is to show big and then resize.
-          setTimeout(function() {
-            iframe.attr({ width: 970, height: 556 });
-          }, 2500);
-        }).
-        on('hidden', function() {
-          $(this).find('.modal-body').html('');
-        });
-
-      $('[rel=popover]').
-        popover().
-        pulse();
-      startPulse();
-    });
-  })
-
-angular.module('Group', ['ngResource']);
-
-function GroupCtrl($scope, $resource)
-{
-  $scope.featuredGroups = $resource('groups/index/getfeatured');
-  $scope.featuredGroups.get();
-
-  $scope.recommendedGroups = $resource('groups/index/getrecommended');
-  $scope.recommendedGroups.get();
-
-}
