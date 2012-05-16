@@ -56,6 +56,10 @@ code.nocode {
   text-align: center;
 }
 
+.hero-unit {
+  margin-bottom: 400px;
+}
+
 .hero-unit h1 {
   padding-top: 1.5em;
   padding-bottom: 1em;
@@ -121,7 +125,7 @@ img.AngularJS-small {
 }
 
 .app-source {
-  min-height: 375px;
+  min-height: 800px;
 }
 
 img.cache {

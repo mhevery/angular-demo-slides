@@ -26,8 +26,11 @@
     </script>
   <![endif]-->
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+  <script src="js/bootstrap.min.js" type="text/javascript"></script>
   <script src="google-code-prettify/prettify.min.js" type="text/javascript"></script>
   <script src="http://code.angularjs.org/angular-1.0.0rc8.js" type="text/javascript"></script>
+  <script src="http://code.angularjs.org/1.0.0rc8/angular-bootstrap-prettify-1.0.0rc8.js" type="text/javascript"></script>
+  <script src="http://code.angularjs.org/1.0.0rc8/angular-bootstrap-1.0.0rc8.js" type="text/javascript"></script>
   <script src="http://code.angularjs.org/angular-resource-1.0.0rc8.js" type="text/javascript"></script>
   <script src="js/homepage.js" type="text/javascript"></script>
 </head>
@@ -55,11 +58,84 @@
       </div>
     </div>
 
+    <h1>HTML Hello World</h1>
+    <div class="row example">
+      <div class="span8 app-source">
+        <div class="tabbable">
+          <div class="tab-pane" title="index.html">
+            <script id="hello-world.html" type="html">
+              <p>Hello World!</p>
+            </script>
+            <pre class="prettyprint linenums" ng-set-text="hello-world.html"></pre>
+          </div>
+        </div>
+      </div>
+      <div class="span4">
+        <div class="tabs-spacer"></div>
+        <div ng-set-html="hello-world.html" class="well"></div>
+      </div>
+    </div>
+
+
+
+    <h1>JS Hello World</h1>
+    <div class="row example">
+      <div class="span8 app-source">
+        <div class="tabbable">
+          <div class="tab-pane" title="index.html">
+            <pre class="prettyprint linenums">&lt;p id="greeting"&gt;&lt;/p&gt;</pre>
+          </div>
+          <div class="tab-pane" title="script.js">
+            <pre class="prettyprint linenums" ng-set-text="hello-world.js"></pre>
+          </div>
+        </div>
+      </div>
+      <div class="span4">
+        <div class="tabs-spacer"></div>
+        <div class="well" id="greeting"></div>
+        <script id="hello-world.js">
+          var isIE = document.attachEvent;
+          var addListener = isIE
+              ? function(e, t, fn) { e.attachEvent('on' + t, fn);}
+              : function(e, t, fn) { e.addEventListener(t, fn, false);};
+
+          addListener(window, 'load', function(){
+            var greeting = document.getElementById('greeting');
+            if (isIE) {
+              greeting.innerText = 'Hello World!';
+            } else {
+              greeting.textContent = 'Hello World!';
+            }
+          });
+        </script>
+      </div>
+    </div>
+
+
+
+    <h1>AngularJS Hello World</h1>
+    <div class="row example">
+      <div class="span8 app-source" app-source="angular-hello-world.html hello.js"></div>
+      <div class="span4">
+        <div class="tabs-spacer"></div>
+        <div app-run="angular-hello-world.html" class="well"></div>
+      </div>
+    </div>
+    <script id="angular-hello-world.html" type="html">
+      <p ng-controller="HelloController">{{greeting}}</p>
+    </script>
+    <script id="hello.js">
+      function HelloController($scope) {
+        $scope.greeting = 'Hello World';
+      }
+    </script>
+
+
+
     <h1>The Basics</h1>
     <div class="row example">
       <div class="span8 app-source" app-source="hello.html"></div>
       <div class="span4">
-        <span hint></span>
         <span class="pull-right" js-fiddle="hello.html"></span>
         <div class="tabs-spacer"></div>
         <div app-run="hello.html" class="well"></div>
@@ -72,7 +148,6 @@
     <div class=" row example">
       <div class="span8 app-source" app-source="todo.html todo.js todo.css"></div>
       <div class="span4">
-        <span hint></span>
         <span class="pull-right" js-fiddle="todo.html todo.js todo.css"></span>
         <div class="tabs-spacer"></div>
         <div app-run="todo.html" class="well"></div>
@@ -93,7 +168,6 @@
     <div class=" row example">
       <div class="span8 app-source" app-source="project.html project.js list.html detail.html mongolab.js" resource="resource" module="project"></div>
       <div class="span4">
-        <span hint></span>
         <span class="pull-right" js-fiddle="project.html list.html detail.html project.js mongolab.js" resource="resource" module="project"></span>
         <div class="tabs-spacer"></div>
         <!--[if lt IE 10]>
@@ -112,7 +186,6 @@
     <div class=" row example">
       <div class="span8 app-source" app-source="tabs.html components.js beers.js" module="components"></div>
       <div class="span4">
-        <span hint></span>
         <span class="pull-right" js-fiddle="tabs.html components.js beers.js" module="components"></span>
         <div class="tabs-spacer"></div>
         <div app-run="tabs.html" module="components" class="well"></div>

@@ -1,4 +1,4 @@
-angular.module('homepage', [])
+angular.module('homepage', ['bootstrapPrettify', 'bootstrap'])
 
   .value('indent', function(text, spaces) {
     if (!text) return text;
@@ -79,7 +79,6 @@ angular.module('homepage', [])
       link: function(scope, element, attrs) {
         var tabs = [],
             panes = [],
-            annotation = attrs.annotate && angular.fromJson(fetchCode(attrs.annotate)) || {},
             TEMPLATE = {
               'index.html':
                 '<!doctype html>\n' +
@@ -149,7 +148,6 @@ angular.module('homepage', [])
             panes.join('') +
             '</div>' +
             '</div>');
-        element.find('[rel=popover]').popover().pulse();
 
         function id(id) {
           return id.replace(/\W/g, '-');
